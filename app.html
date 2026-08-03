@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mis Cuentas</title>
-<link rel="stylesheet" href="css/styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mis Cuentas</title>
+  <link rel="stylesheet" href="css/styles.css">
 </head>
+
 <body>
   <header class="app-header">
     <h1>💰 Mis Cuentas</h1>
@@ -24,17 +26,109 @@
       <p>Acá va el resumen mensual (próximo paso).</p>
     </section>
     <section id="tab-tarjetas" class="tab-content">
-      <p>Acá van los gastos de tarjetas (próximo paso).</p>
+      <div class="tarjeta-selector" id="tarjeta-selector"></div>
+
+      <div class="mes-selector">
+        <button id="tj-mes-anterior">◀</button>
+        <span id="tj-mes-actual-label"></span>
+        <button id="tj-mes-siguiente">▶</button>
+        <div class="periodo-fechas">
+          <label>🔒 <input type="date" id="tj-fecha-cierre"></label>
+          <label>⏰ <input type="date" id="tj-fecha-vencimiento"></label>
+        </div>
+      </div>
+
+      <form id="form-tarjeta" class="form-item">
+        <input type="text" id="tj-descripcion" placeholder="Descripción" required>
+        <input type="number" id="tj-monto" placeholder="Monto cuota" step="0.01" required>
+        <input type="number" id="tj-cuota-actual" placeholder="Cuota actual" min="1">
+        <input type="number" id="tj-cuota-total" placeholder="Cuota total" min="1">
+        <input type="number" id="tj-monto-lau" placeholder="Monto Lau (opcional)" step="0.01">
+        <label class="check-debito"><input type="checkbox" id="tj-debito-automatico"> Débito automático</label>
+        <button type="submit">Agregar</button>
+      </form>
+
+      <ul id="lista-tarjeta" class="lista-items"></ul>
+
+      <div class="total-mes">
+        Total del mes: <span id="total-tarjeta">$0</span>
+      </div>
+      <div class="total-mes total-lau">
+        Te debe Lau: <span id="total-tarjeta-lau">$0</span>
+      </div>
     </section>
     <section id="tab-impserv" class="tab-content">
-      <p>Acá van impuestos y servicios (próximo paso).</p>
+      <div class="mes-selector">
+        <button id="mes-anterior">◀</button>
+        <span id="mes-actual-label"></span>
+        <button id="mes-siguiente">▶</button>
+      </div>
+
+      <div class="botones-rapidos" id="botones-rapidos"></div>
+
+      <form id="form-nuevo-acceso" class="form-nuevo-acceso">
+        <input type="text" id="nuevo-acceso-nombre" placeholder="Nuevo acceso rápido">
+        <button type="submit">+</button>
+      </form>
+
+      <form id="form-impserv" class="form-item">
+        <input type="text" id="is-nombre" placeholder="Nombre" required>
+        <input type="number" id="is-monto" placeholder="Monto" step="0.01" required>
+        <input type="date" id="is-vencimiento" required>
+        <input type="number" id="is-monto-lau" placeholder="Monto Lau (opcional)" step="0.01">
+        <button type="submit">Agregar</button>
+      </form>
+
+      <ul id="lista-impserv" class="lista-items"></ul>
+
+      <div class="total-mes">
+        Total del mes: <span id="total-impserv">$0</span>
+      </div>
+      <div class="total-mes total-lau">
+        Te debe Lau: <span id="total-lau">$0</span>
+      </div>
     </section>
     <section id="tab-extra" class="tab-content">
-      <p>Acá va ahorro, cuentas y vencimientos (próximo paso).</p>
+      <h3 class="subtitulo-extra">Saldos por cuenta</h3>
+      <h3 class="subtitulo-extra">Vencimientos del mes</h3>
+
+      <div class="mes-selector">
+        <button id="ve-mes-anterior">◀</button>
+        <span id="ve-mes-actual-label"></span>
+        <button id="ve-mes-siguiente">▶</button>
+      </div>
+
+      <ul id="lista-vencimientos" class="lista-items"></ul>
+
+      <div class="total-mes">
+        Total vencimientos: <span id="total-vencimientos">$0</span>
+      </div>
+
+      <form id="form-cuenta" class="form-item">
+        <input type="text" id="cuenta-nombre" placeholder="Nombre" required>
+        <input type="text" inputmode="decimal" id="cuenta-saldo" placeholder="Saldo" required>
+        <select id="cuenta-tipo">
+          <option value="banco">Banco</option>
+          <option value="billetera">Billetera</option>
+          <option value="efectivo">Efectivo</option>
+        </select>
+        <button type="submit">Agregar</button>
+      </form>
+
+      <div id="lista-cuentas"></div>
+
+      <div class="total-mes">
+        Total disponible: <span id="total-cuentas">$0</span>
+      </div>
     </section>
   </main>
 
   <script type="module" src="js/firebase-config.js"></script>
   <script type="module" src="js/app.js"></script>
+  <script type="module" src="js/impserv.js"></script>
+  <script type="module" src="js/tarjetas.js"></script>
+  <script type="module" src="js/extra.js"></script>
+  <script type="module" src="js/vencimientos.js"></script>
 </body>
+
 </html>
