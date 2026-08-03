@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mis Cuentas</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <h1>💰 Mis Cuentas</h1>
+    <button id="btn-logout">Salir</button>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="total">Total</button>
+    <button class="tab-btn" data-tab="tarjetas">Tarjetas</button>
+    <button class="tab-btn" data-tab="impserv">Imp. y Servicios</button>
+    <button class="tab-btn" data-tab="extra">Extra</button>
+  </nav>
+
+  <main id="contenido">
+    <section id="tab-total" class="tab-content active">
+      <p>Acá va el resumen mensual (próximo paso).</p>
+    </section>
+    <section id="tab-tarjetas" class="tab-content">
+      <p>Acá van los gastos de tarjetas (próximo paso).</p>
+    </section>
+    <section id="tab-impserv" class="tab-content">
+      <p>Acá van impuestos y servicios (próximo paso).</p>
+    </section>
+    <section id="tab-extra" class="tab-content">
+      <p>Acá va ahorro, cuentas y vencimientos (próximo paso).</p>
+    </section>
+  </main>
+
+  <script type="module" src="js/firebase-config.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
