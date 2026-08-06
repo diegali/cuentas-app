@@ -550,8 +550,22 @@ input.fecha-hoy {
 }
 
 .check-periodo-pagado {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 13px;
+  font-weight: normal;
   color: var(--text-dim);
-  font-size: 14px;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 20px;
+  padding: 3px 10px;
+}
+.check-periodo-pagado input[type="checkbox"] {
+  width: 13px;
+  height: 13px;
+  accent-color: #7aa6c2;
+  cursor: pointer;
 }
 
 .periodo-fechas.periodo-pagado {
@@ -577,4 +591,36 @@ input.fecha-hoy {
   margin-top: 2rem;
   padding-top: 1.5rem;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mes-extra-header {
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--accent);
+  margin-bottom: 1rem;
+}
+.separador-extra {
+  border: none;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  margin: 1.5rem 0 1rem;
+}
+
+.titulo-con-check h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+#lista-lau.lista-pagada {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+
+.check-periodo-pagado.periodo-pagado {
+  background: rgba(122, 166, 194, 0.15);
+  border: 1px solid #7aa6c2;
+  border-radius: 8px;
+  padding: 4px 10px;
+  color: #7aa6c2;
+  font-weight: bold;
 }

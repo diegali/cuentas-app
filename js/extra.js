@@ -8,6 +8,10 @@ import {
 
 const ICONOS_TIPO = { banco: "🏦", billetera: "📱", efectivo: "💵" };
 const TARJETAS = ["VISA HIPOTECARIO", "VISA FRANCES", "CORDOBESA", "MC MERCADO PAGO"];
+const MESES = [
+  "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
+  "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"
+];
 
 let uid = null;
 let totalCuentasActual = 0;
@@ -26,9 +30,20 @@ function iniciarModulo() {
   escucharCuentas();
   escucharAhorro();
   escucharDiaCobro();
+  const hoy = new Date();
+  const hoyLau = new Date();
+  onSnapshot(
+    doc(db, "users", uid, "lauPeriodos", `${hoyLau.getMonth()}_${hoyLau.getFullYear()}`),
+    () => calcularDisponibleDiario()
+  );
+  document.getElementById("mes-extra-label").textContent = `${MESES[hoy.getMonth()]} ${hoy.getFullYear()}`;
   document.getElementById("form-cuenta").addEventListener("submit", guardarCuenta);
   document.getElementById("form-ahorro").addEventListener("submit", guardarAhorro);
   document.getElementById("dia-cobro").addEventListener("change", guardarDiaCobro);
+
+  onSnapshot(doc(db, "users", uid, "lauPeriodos", `${new Date().getMonth()}_${new Date().getFullYear()}`), () => {
+    calcularDisponibleDiario();
+  });
 }
 
 function parsearMonto(texto) {

@@ -30,28 +30,13 @@ onAuthStateChanged(auth, (user) => {
 });
 
 function iniciarModulo() {
-    actualizarLabelMes();
     escucharTodo();
     escucharPeriodoLau();
     document.getElementById("ld-pagado").addEventListener("change", async (e) => {
         await setDoc(doc(db, "users", uid, "lauPeriodos", idPeriodoLau()), { pagado: e.target.checked }, { merge: true });
     });
-    document.getElementById("ld-mes-anterior").addEventListener("click", () => cambiarMes(-1));
-    document.getElementById("ld-mes-siguiente").addEventListener("click", () => cambiarMes(1));
 }
 
-function cambiarMes(delta) {
-    mesActual += delta;
-    if (mesActual < 0) { mesActual = 11; anioActual--; }
-    if (mesActual > 11) { mesActual = 0; anioActual++; }
-    actualizarLabelMes();
-    escucharTodo();
-    escucharPeriodoLau();
-}
-
-function actualizarLabelMes() {
-    document.getElementById("ld-mes-actual-label").textContent = `${MESES[mesActual]} ${anioActual}`;
-}
 
 function formatearMonto(valor) {
     return valor.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
@@ -138,7 +123,7 @@ function escucharPeriodoLau() {
     onSnapshot(ref, (snap) => {
         periodoPagadoActual = snap.exists() ? !!snap.data().pagado : false;
         document.getElementById("ld-pagado").checked = periodoPagadoActual;
-        document.getElementById("ld-pagado-texto").textContent = periodoPagadoActual ? "PAGADO" : "";
+        document.getElementById("lista-lau").classList.toggle("lista-pagada", periodoPagadoActual);
         renderCombinado();
     });
 }

@@ -39,6 +39,7 @@ no con fórmulas manuales mes a mes.
 - js/tarjetas.js → módulo Tarjetas (COMPLETO)
 - js/extra.js → módulo Extra: Saldos por cuenta + Ahorro + Disponible diario (COMPLETO)
 - js/vencimientos.js → módulo Extra: Vencimientos del mes (COMPLETO)
+- js/deudalau.js → módulo Extra: Debe Lau (COMPLETO)
 
 Login y navegación YA FUNCIONAN correctamente en producción (GitHub Pages).
 
@@ -189,7 +190,10 @@ fecha de vencimiento ascendente:
   filtran con `.filter(item => !item.pagado)` ANTES de mapear el array —
   esta línea se pisó sin querer una vez al agregar los listeners de
   tarjetas, ojo si se vuelve a tocar `escucharTodo()`), con nombre y monto
-  (monto - montoLau)
+  BRUTO real (`item.monto`, SIN restar montoLau — antes restaba montoLau,
+  se cambió para que sea consistente con Tarjetas: acá siempre se muestra
+  el total real a pagar, la parte de Lau se trackea aparte en el módulo
+  Debe Lau)
 - Vencimientos de tarjetas del mes: para cada tarjeta del array `TARJETAS`
   (debe coincidir EXACTO con el de tarjetas.js, incluyendo "CORDOBESA" y
   "MC MERCADO PAGO"), lee el doc de tarjetasPeriodos
@@ -202,7 +206,8 @@ fecha de vencimiento ascendente:
   doc de tarjetasPeriodos: `sello`, `comision`, `iva`) para que el monto
   mostrado sea el total real a pagar de esa tarjeta, no solo la suma de
   consumos. Si `pagado` es true, se excluye de la lista.
-- Selector de mes/año propio, independiente del de impserv/tarjetas
+- Sin selector de mes propio: `mesActual`/`anioActual` quedan fijos en el
+  mes/año de hoy (ver sección "Extra sin navegación de mes" más abajo)
 - Cada fila muestra: nombre + tipo entre paréntesis ("Impuesto/Servicio" o
   "Tarjeta"), fecha formateada, monto
 - Resaltado: mismo criterio que impserv — fila completa roja si venció
@@ -220,11 +225,86 @@ fecha de vencimiento ascendente:
 - No requiere índice compuesto extra: las queries de suma por tarjeta usan
   solo igualdades (where tarjeta/mes/anio sin orderBy)
 - Exporta `calcularTotalVencimientosMes(uid, mes, anio)`: versión reusable
-  del mismo cálculo (impuestos/servicios no pagados + tarjetas no pagadas
-  con sello/comisión/IVA), usada por `extra.js` para Disponible diario, sin
-  tocar el DOM (a diferencia de `renderCombinado()`, que sí lo hace)
+  del mismo cálculo (impuestos/servicios no pagados en monto BRUTO +
+  tarjetas no pagadas con sello/comisión/IVA), usada por `extra.js` para
+  Disponible diario, sin tocar el DOM (a diferencia de `renderCombinado()`,
+  que sí lo hace). IMPORTANTE: debe usar `total += item.monto` (bruto),
+  NUNCA `item.monto - item.montoLau` — hubo un bug donde esta función
+  quedó desactualizada (restando montoLau) después de cambiar la lógica
+  del listado en pantalla, haciendo que "Total vencimientos" mostrara un
+  número distinto al usado en el cálculo de Disponible diario
 
-## Patrón "Monto Lau" (compartido entre impserv.js y tarjetas.js)
+## Módulo "Extra" (tab-extra) - Debe Lau - COMPLETO
+Archivo: js/deudalau.js. Lista los ítems del mes (impserv + tarjetas) que
+tienen `montoLau > 0`, para chequear con Lau y marcar como pagado en
+bloque:
+- Junta ítems de `impuestosServicios` y `tarjetas` del mes actual con
+  `montoLau > 0` (dos listeners onSnapshot, `ultimoImp` + `ultimoTarj`,
+  se combinan en `renderCombinado()`)
+- El "pagado" es UNO SOLO por mes (no por ítem, a diferencia de lo que se
+  intentó primero): checkbox único `#ld-pagado`, guardado en
+  `users/{uid}/lauPeriodos/{mes}_{anio}` (campo `pagado`), vía
+  `escucharPeriodoLau()` / `idPeriodoLau()`, mismo patrón que
+  `tj-pagado` de tarjetas.js
+- Al tildar "Pagado": el checkbox toma el mismo estilo resaltado que usa
+  Tarjetas (clase `.check-periodo-pagado.periodo-pagado`, fondo celeste
+  tenue + borde `#7aa6c2`) y la lista de ítems (`#lista-lau`) se atenúa y
+  tacha (`.lista-pagada`: opacity 0.4 + line-through)
+- Checkbox ubicado DENTRO del `<h3>Debe Lau</h3>`, al lado del título
+  (no en su propia fila)
+- Listado simple (sin checkbox individual): nombre + montoLau de cada
+  ítem
+- Total "Pendiente" en vivo (`#total-lau-pendiente`, con clase
+  `.total-mes` para mismo estilo que "Total vencimientos"): si el período
+  está marcado como pagado, muestra $0; si no, suma todos los montoLau
+- Exporta `calcularTotalLauPendiente(uid, mes, anio)`: primero chequea si
+  el período está pagado (si sí, devuelve 0 directo); si no, suma
+  montoLau de impuestosServicios + tarjetas del mes. Usada por extra.js
+  en Disponible diario
+- Datos en Firestore: NO crea colección propia para los ítems (lee de
+  impuestosServicios y tarjetas ya existentes); solo crea
+  `users/{uid}/lauPeriodos/{mes}_{anio}`: {pagado}
+
+## Módulo "Extra" (tab-extra) - Disponible diario - actualización
+Se agregó `totalLau` a la fórmula (además de `totalVencimientos`, ya
+documentado arriba): `calcularTotalLauPendiente(uid, mes, anio)` (desde
+deudalau.js) se SUMA al disponible (es plata que Lau le va a devolver al
+usuario, un crédito a favor, no un descuento). Fórmula final:
+```
+disponible = (totalCuentasActual - totalAhorroActual - totalVencimientos + totalLau) / dias
+```
+En `iniciarModulo()` de extra.js hay un listener extra para que se
+recalcule solo al tildar/destildar "Pagado" en Debe Lau (si no, el
+disponible queda desactualizado hasta que cambie cuentas/ahorro/fecha de
+cobro):
+```js
+onSnapshot(
+  doc(db, "users", uid, "lauPeriodos", `${hoy.getMonth()}_${hoy.getFullYear()}`),
+  () => calcularDisponibleDiario()
+);
+```
+CONFIRMADO Y VERIFICADO con console.log que el cálculo da bien: con Lau
+pagado ($0 de crédito) el disponible por día coincide exacto con
+`(totalCuentas - totalAhorro - totalVencimientos) / dias`.
+
+## Extra: sin navegación de mes propia (todos los sub-módulos)
+Se sacó el selector de mes/año (flechas ◀ ▶) de Vencimientos y de Debe
+Lau — ya no tiene sentido navegar meses ahí, esa sección siempre debe
+reflejar el mes en curso hasta que el usuario cargue la próxima fecha de
+cobro. Cambios aplicados:
+- Un solo encabezado de mes arriba de todo el tab (`extra.js`,
+  `iniciarModulo()`): `<div class="mes-extra-header">📅 <span
+  id="mes-extra-label"></span></div>`, texto tipo "AGOSTO 2026"
+- En vencimientos.js y deudalau.js: se sacaron las funciones
+  `actualizarLabelMes()` y `cambiarMes()`, y los listeners de los botones
+  de mes (ya no existen esos elementos en el HTML). `mesActual`/
+  `anioActual` quedan fijos en el mes/año de hoy desde el inicio
+- Separación visual entre sub-secciones de Extra: `<hr
+  class="separador-extra">` entre Saldos por cuenta / Ahorro / Disponible
+  diario / Debe Lau / Vencimientos (en vez del viejo selector de mes de
+  cada uno)
+
+
 La mayoría de los ítems los paga el usuario completo; muy pocos se
 dividen con Lau (esposa). El campo Lau:
 - Se carga SOLO desde el formulario al crear el ítem (input opcional)
@@ -233,9 +313,13 @@ dividen con Lau (esposa). El campo Lau:
 - Dentro de cada módulo (impserv, tarjetas) el monto Lau se resta del
   total "normal" del usuario y se suma aparte en "Te debe Lau"
 - En Vencimientos (Extra) es distinto a propósito: ahí se quiere ver el
-  total GENERAL (bruto, sin restar Lau), porque lo que importa en esa
-  pantalla es cuánta plata hay que tener disponible para pagar ese
-  vencimiento completo, no solo la parte del usuario
+  total GENERAL (bruto, sin restar Lau, en ambos tipos de ítem — impserv y
+  tarjetas), porque lo que importa en esa pantalla es cuánta plata hay que
+  tener disponible para pagar ese vencimiento completo, no solo la parte
+  del usuario
+- El módulo "Debe Lau" (Extra) es el que trackea aparte cuánto de esa
+  plata ya adelantada corresponde reclamarle a Lau, mes a mes, con un
+  solo checkbox "pagado" para todo el período (no ítem por ítem)
 
 ## Bugs ya resueltos durante el desarrollo (por si se repiten)
 - Import de Firebase debe ser con URL completa de gstatic, NUNCA estilo npm
@@ -257,11 +341,25 @@ dividen con Lau (esposa). El campo Lau:
 - Datos que dependen de otra colección/doc (ej. vencimientos de tarjetas
   en Extra) necesitan listeners propios (onSnapshot) para actualizarse
   solos; una lectura puntual (getDocs/getDoc) sin listener requiere F5
+- Cuando existen DOS versiones de un mismo cálculo (una que renderiza en
+  pantalla + una exportada para reusar en otro módulo, ej.
+  `renderCombinado()` vs `calcularTotalVencimientosMes()` en
+  vencimientos.js), un cambio de lógica aplicado solo a una de las dos
+  deja resultados inconsistentes entre pantallas — revisar SIEMPRE ambas
+  cuando se cambia la fórmula de algo que se calcula en más de un lugar
 - Al pegar fragmentos nuevos dentro de una función grande (ej.
   `escucharTodo()` en vencimientos.js), es fácil pisar sin querer líneas
   de lógica ya existente (pasó con el filtro `!item.pagado`) — conviene
   revisar el bloque completo después de cada cambio grande, no solo la
   parte nueva
+- `getElementById` con un `id` DUPLICADO en el HTML (ej. dos elementos
+  con `id="ld-pagado"` al pegar fragmentos viejos y nuevos juntos) rompe
+  en silencio: siempre encuentra el primero, el segundo queda "fantasma"
+  y ningún listener se le engancha correctamente
+- Al iterar cambios de estilo varias veces sobre lo mismo, quedan
+  reglas CSS viejas sin usar (ej. `.check-pagado-periodo`,
+  `.selector-mes.periodo-pagado`) — conviene pedir que se pase el CSS
+  completo de la zona de vez en cuando para limpiar lo que ya no aplica
 
 ## Próximo módulo a construir
 Pantalla TOTAL (tab-total): resumen mensual sumando tarjetas +

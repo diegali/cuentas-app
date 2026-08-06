@@ -96,6 +96,7 @@
       </div>
     </section>
     <section id="tab-extra" class="tab-content">
+      <div class="mes-extra-header">📅 <span id="mes-extra-label"></span></div>
       <h3 class="subtitulo-extra">Saldos por cuenta</h3>
       <form id="form-cuenta" class="form-item">
         <input type="text" id="cuenta-nombre" placeholder="Nombre" required>
@@ -141,35 +142,28 @@
       </div>
 
       <section class="bloque-lau">
-        <h3>Debe Lau</h3>
-        <div class="selector-mes">
-          <button id="ld-mes-anterior">◀</button>
-          <span id="ld-mes-actual-label"></span>
-          <button id="ld-mes-siguiente">▶</button>
+        <div class="titulo-con-check">
+          <h3>Debe Lau <label class="check-periodo-pagado"><input type="checkbox" id="ld-pagado"><span
+                id="ld-pagado-texto">Pagado</span></label></h3>
         </div>
-        <label class="check-pagado-periodo">
-          <input type="checkbox" id="ld-pagado">
-          <span id="ld-pagado-texto"></span>
-        </label>
+        <hr class="separador-extra">
         <ul id="lista-lau"></ul>
-        <p>Pendiente: <span id="total-lau-pendiente">$0,00</span></p>
+        <div class="total-mes">
+          Pendiente: <span id="total-lau-pendiente">$0,00</span>
+        </div>
+        <hr class="separador-extra">
       </section>
+
+      <section class="bloque-vencimientos">
+        <h3>Vencimientos del mes</h3>
+        <hr class="separador-extra">
+        <ul id="lista-vencimientos" class="lista-items"></ul>
+        <div class="total-mes">
+          Total vencimientos: <span id="total-vencimientos">$0</span>
+        </div>
+      </section>
+
       <script type="module" src="js/deudalau.js"></script>
-
-      <h3 class="subtitulo-extra">Vencimientos del mes</h3>
-
-      <div class="mes-selector">
-        <button id="ve-mes-anterior">◀</button>
-        <span id="ve-mes-actual-label"></span>
-        <button id="ve-mes-siguiente">▶</button>
-      </div>
-
-      <ul id="lista-vencimientos" class="lista-items"></ul>
-
-      <div class="total-mes">
-        Total vencimientos: <span id="total-vencimientos">$0</span>
-      </div>
-    </section>
   </main>
 
   <script type="module" src="js/firebase-config.js"></script>

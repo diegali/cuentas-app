@@ -31,24 +31,11 @@ onAuthStateChanged(auth, (user) => {
 });
 
 function iniciarModulo() {
-  actualizarLabelMes();
-  escucharTodo();
 
-  document.getElementById("ve-mes-anterior").addEventListener("click", () => cambiarMes(-1));
-  document.getElementById("ve-mes-siguiente").addEventListener("click", () => cambiarMes(1));
-}
-
-function cambiarMes(delta) {
-  mesActual += delta;
-  if (mesActual < 0) { mesActual = 11; anioActual--; }
-  if (mesActual > 11) { mesActual = 0; anioActual++; }
-  actualizarLabelMes();
   escucharTodo();
 }
 
-function actualizarLabelMes() {
-  document.getElementById("ve-mes-actual-label").textContent = `${MESES[mesActual]} ${anioActual}`;
-}
+
 
 function formatearMonto(valor) {
   return valor.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
@@ -75,7 +62,7 @@ function escucharTodo() {
       .filter(item => !item.pagado)
       .map(item => ({
         nombre: item.nombre,
-        monto: item.monto - (item.montoLau || 0),
+        monto: item.monto,
         vencimiento: item.vencimiento || null,
         tipo: "Impuesto/Servicio"
       }));
@@ -182,7 +169,7 @@ export async function calcularTotalVencimientosMes(uidParam, mes, anio) {
   const snapImp = await getDocs(qImp);
   snapImp.forEach(d => {
     const item = d.data();
-    if (!item.pagado) total += item.monto - (item.montoLau || 0);
+    if (!item.pagado) total += item.monto;
   });
 
   for (const tarjeta of TARJETAS) {
