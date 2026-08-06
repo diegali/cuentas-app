@@ -21,7 +21,10 @@ let tarjetaActual = TARJETAS[0];
 let unsubscribe = null;
 let uid = null;
 let yaIniciado = false;
-
+let ultimoItemsSnapshot = [];
+let comisionActual = 0;
+let ivaActual = 0;
+let selloManual = null;
 
 onAuthStateChanged(auth, (user) => {
   if (user && !yaIniciado) {
@@ -42,6 +45,14 @@ function escucharFechasPeriodo() {
     document.getElementById("tj-fecha-cierre").value = data.fechaCierre || "";
     document.getElementById("tj-fecha-vencimiento").value = data.fechaVencimiento || "";
     actualizarEstadoPeriodo(data.fechaCierre, data.fechaVencimiento);
+    document.getElementById("tj-pagado").checked = data.pagado || false;
+    document.querySelector(".periodo-fechas").classList.toggle("periodo-pagado", data.pagado || false);
+    document.getElementById("tj-pagado-texto").textContent = data.pagado ? "PAGADO" : "";
+
+    comisionActual = data.comision || 0;
+    ivaActual = data.iva || 0;
+    selloManual = (data.sello !== undefined && data.sello !== null) ? data.sello : null;
+    renderListaYTotales();
   });
 }
 
@@ -74,6 +85,10 @@ function iniciarModulo() {
   });
   document.getElementById("tj-fecha-vencimiento").addEventListener("change", (e) => {
     guardarFechaPeriodo("fechaVencimiento", e.target.value);
+  });
+  document.getElementById("tj-pagado").addEventListener("change", (e) => {
+    guardarFechaPeriodo("pagado", e.target.checked);
+    document.getElementById("tj-pagado-texto").textContent = e.target.checked ? "PAGADO" : "";
   });
 }
 
@@ -162,24 +177,49 @@ function escucharDatos() {
   );
 
   unsubscribe = onSnapshot(q, (snapshot) => {
-    const lista = document.getElementById("lista-tarjeta");
-    lista.innerHTML = "";
-    let total = 0;
-    let totalLau = 0;
-
-    snapshot.forEach(docSnap => {
-      const item = docSnap.data();
-      const lau = item.montoLau || 0;
-      total += item.monto - lau;
-      totalLau += lau;
-      lista.appendChild(crearItemHTML(docSnap.id, item));
-    });
-
-    document.getElementById("total-tarjeta").textContent =
-      total.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
-    document.getElementById("total-tarjeta-lau").textContent =
-      totalLau.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
+    ultimoItemsSnapshot = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderListaYTotales();
   });
+}
+
+function renderListaYTotales() {
+  const lista = document.getElementById("lista-tarjeta");
+  lista.innerHTML = "";
+  let total = 0;
+  let totalLau = 0;
+  let totalGross = 0;
+
+  ultimoItemsSnapshot.forEach(item => {
+    const lau = item.montoLau || 0;
+    total += item.monto - lau;
+    totalLau += lau;
+    totalGross += item.monto;
+    lista.appendChild(crearItemHTML(item.id, item));
+  });
+
+  if (tarjetaActual === "CORDOBESA") {
+    const selloAutomatico = totalGross * 0.015;
+    const sello = selloManual !== null ? selloManual : selloAutomatico;
+    total += sello + comisionActual + ivaActual;
+
+    lista.appendChild(crearItemFijoHTML("IMPUESTO AL SELLO", sello, "sello"));
+    lista.appendChild(crearItemFijoHTML("IVA", ivaActual, "iva"));
+    lista.appendChild(crearItemFijoHTML("COMISIÓN DE MANTENIMIENTO", comisionActual, "comision"));
+
+  } else if (tarjetaActual === "MC MERCADO PAGO") {
+    const selloAutomatico = totalGross * 0.015;
+    const sello = selloManual !== null ? selloManual : selloAutomatico;
+    total += sello;
+
+    lista.appendChild(crearItemFijoHTML("IMPUESTO AL SELLO", sello, "sello"));
+  }
+
+  document.getElementById("total-tarjeta").textContent =
+    total.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
+  document.getElementById("total-tarjeta-lau").textContent =
+    totalLau.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
+  document.getElementById("total-tarjeta-general").textContent =
+    (total + totalLau).toLocaleString("es-AR", { style: "currency", currency: "ARS" });
 }
 
 function crearItemHTML(id, item) {
@@ -193,7 +233,7 @@ function crearItemHTML(id, item) {
   li.innerHTML = `
     <span class="item-nombre">${item.descripcion} <span class="item-cuota">(${cuotaTexto})</span></span>
     <input type="text" inputmode="decimal" class="item-monto-input" value="${item.monto.toLocaleString("es-AR", { style: "currency", currency: "ARS" })}">
-    <input type="text" inputmode="decimal" class="item-lau-input" placeholder="Lau" value="${(item.montoLau || 0).toLocaleString("es-AR", { style: "currency", currency: "ARS" })}">
+    ${item.montoLau ? `<input type="text" inputmode="decimal" class="item-lau-input" placeholder="Lau" value="${item.montoLau.toLocaleString("es-AR", { style: "currency", currency: "ARS" })}">` : ""}
     <button class="btn-borrar">🗑</button>
   `;
 
@@ -222,12 +262,57 @@ function crearItemHTML(id, item) {
   }
 
   manejarMonto(li.querySelector(".item-monto-input"), "monto");
-  manejarMonto(li.querySelector(".item-lau-input"), "montoLau");
+
+  const inputLauExistente = li.querySelector(".item-lau-input");
+  if (inputLauExistente) manejarMonto(inputLauExistente, "montoLau");
 
   li.querySelector(".btn-borrar").addEventListener("click", async () => {
     if (confirm(`¿Borrar "${item.descripcion}"?`)) {
       await deleteDoc(doc(db, "users", uid, "tarjetas", id));
     }
+  });
+
+  return li;
+}
+
+function crearItemFijoHTML(nombre, monto, campo) {
+  const li = document.createElement("li");
+  li.className = "item-fila item-fijo";
+
+  if (campo === null) {
+    li.innerHTML = `
+      <span class="item-nombre">${nombre}</span>
+      <span class="item-monto">${monto.toLocaleString("es-AR", { style: "currency", currency: "ARS" })}</span>
+    `;
+    return li;
+  }
+
+  li.innerHTML = `
+    <span class="item-nombre">${nombre}</span>
+    <input type="text" inputmode="decimal" class="item-monto-input" value="${monto.toLocaleString("es-AR", { style: "currency", currency: "ARS" })}">
+  `;
+
+  const input = li.querySelector(".item-monto-input");
+  input.addEventListener("focus", (e) => {
+    e.target.value = campo === "comision" ? comisionActual : campo === "iva" ? ivaActual : monto;
+    e.target.select();
+  });
+  input.addEventListener("blur", async (e) => {
+    let texto = e.target.value.replace(/[^0-9.,]/g, "");
+    const ultimoSeparador = Math.max(texto.lastIndexOf(","), texto.lastIndexOf("."));
+    let valor;
+    if (ultimoSeparador === -1) {
+      valor = parseFloat(texto) || 0;
+    } else {
+      const entero = texto.slice(0, ultimoSeparador).replace(/[.,]/g, "");
+      const decimal = texto.slice(ultimoSeparador + 1);
+      valor = parseFloat(entero + "." + decimal) || 0;
+    }
+    e.target.value = valor.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
+    await guardarFechaPeriodo(campo, valor);
+  });
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") e.target.blur();
   });
 
   return li;

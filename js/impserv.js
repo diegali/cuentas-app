@@ -2,7 +2,7 @@ import { auth, db } from "./firebase-config.js";
 import { onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  collection, addDoc, deleteDoc, doc, updateDoc, getDoc, setDoc,
+  collection, addDoc, deleteDoc, doc, updateDoc, getDoc, setDoc, getDocs,
   query, where, onSnapshot, orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -41,6 +41,7 @@ async function iniciarModulo() {
   document.getElementById("mes-siguiente").addEventListener("click", () => cambiarMes(1));
   document.getElementById("form-impserv").addEventListener("submit", guardarItem);
   document.getElementById("form-nuevo-acceso").addEventListener("submit", agregarAccesoRapido);
+  document.getElementById("copiar-mes-anterior").addEventListener("click", copiarMesAnterior);
 }
 
 async function cargarAccesosRapidos() {
@@ -135,6 +136,39 @@ async function guardarItem(e) {
   e.target.reset();
 }
 
+async function copiarMesAnterior() {
+  let mesAnt = mesActual - 1;
+  let anioAnt = anioActual;
+  if (mesAnt < 0) { mesAnt = 11; anioAnt--; }
+
+  const q = query(
+    collection(db, "users", uid, "impuestosServicios"),
+    where("mes", "==", mesAnt),
+    where("anio", "==", anioAnt)
+  );
+  const snap = await getDocs(q);
+
+  if (snap.empty) {
+    alert("No hay ítems en el mes anterior para copiar.");
+    return;
+  }
+
+  if (!confirm(`¿Copiar ${snap.size} ítem(s) del mes anterior a ${MESES[mesActual]} ${anioActual}?`)) return;
+
+  for (const docSnap of snap.docs) {
+    const item = docSnap.data();
+    await addDoc(collection(db, "users", uid, "impuestosServicios"), {
+      nombre: item.nombre,
+      monto: item.monto,
+      montoLau: item.montoLau || 0,
+      vencimiento: "",
+      mes: mesActual,
+      anio: anioActual,
+      pagado: false
+    });
+  }
+}
+
 function escucharDatos() {
   if (unsubscribe) unsubscribe(); // dejar de escuchar el mes anterior
 
@@ -177,7 +211,7 @@ function crearItemHTML(id, item) {
   <span class="item-nombre">${item.nombre}</span>
   <input type="text" inputmode="decimal" class="item-monto-input" value="${item.monto.toLocaleString("es-AR", { style: "currency", currency: "ARS" })}">
   <input type="date" class="item-fecha-input" value="${item.vencimiento || ""}">
-  <input type="text" inputmode="decimal" class="item-lau-input" placeholder="Lau" value="${(item.montoLau || 0).toLocaleString("es-AR", { style: "currency", currency: "ARS" })}">
+  ${item.montoLau ? `<input type="text" inputmode="decimal" class="item-lau-input" placeholder="Lau" value="${item.montoLau.toLocaleString("es-AR", { style: "currency", currency: "ARS" })}">` : ""}
   <button class="btn-borrar">🗑</button>
   `;
 
@@ -221,31 +255,41 @@ function crearItemHTML(id, item) {
     await updateDoc(doc(db, "users", uid, "impuestosServicios", id), { pagado: e.target.checked });
   });
 
-  const inputLau = li.querySelector(".item-lau-input");
+  function activarInputLau(inputLau) {
+    inputLau.addEventListener("focus", (e) => {
+      e.target.value = item.montoLau || 0;
+      e.target.select();
+    });
+    inputLau.addEventListener("blur", async (e) => {
+      let texto = e.target.value.replace(/[^0-9.,]/g, "");
+      const ultimoSeparador = Math.max(texto.lastIndexOf(","), texto.lastIndexOf("."));
+      let valor;
+      if (ultimoSeparador === -1) {
+        valor = parseFloat(texto) || 0;
+      } else {
+        const entero = texto.slice(0, ultimoSeparador).replace(/[.,]/g, "");
+        const decimal = texto.slice(ultimoSeparador + 1);
+        valor = parseFloat(entero + "." + decimal) || 0;
+      }
+      e.target.value = valor.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
+      await updateDoc(doc(db, "users", uid, "impuestosServicios", id), { montoLau: valor });
+    });
+    inputLau.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") e.target.blur();
+    });
+  }
 
-  inputLau.addEventListener("focus", (e) => {
-    e.target.value = item.montoLau || 0;
-    e.target.select();
-  });
+  const inputLauExistente = li.querySelector(".item-lau-input");
+  if (inputLauExistente) activarInputLau(inputLauExistente);
 
-  inputLau.addEventListener("blur", async (e) => {
-    let texto = e.target.value.replace(/[^0-9.,]/g, "");
-    const ultimoSeparador = Math.max(texto.lastIndexOf(","), texto.lastIndexOf("."));
-    let valor;
-    if (ultimoSeparador === -1) {
-      valor = parseFloat(texto) || 0;
-    } else {
-      const entero = texto.slice(0, ultimoSeparador).replace(/[.,]/g, "");
-      const decimal = texto.slice(ultimoSeparador + 1);
-      valor = parseFloat(entero + "." + decimal) || 0;
+  if (!item.pagado && item.vencimiento) {
+    const hoyISO = new Date().toISOString().slice(0, 10);
+    if (item.vencimiento < hoyISO) {
+      li.classList.add("fecha-pasada");
+    } else if (item.vencimiento === hoyISO) {
+      li.classList.add("fecha-hoy");
     }
-    e.target.value = valor.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
-    await updateDoc(doc(db, "users", uid, "impuestosServicios", id), { montoLau: valor });
-  });
-
-  inputLau.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") e.target.blur();
-  });
-
+  }
   return li;
+
 }

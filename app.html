@@ -35,6 +35,8 @@
         <div class="periodo-fechas">
           <label>🔒 <input type="date" id="tj-fecha-cierre"></label>
           <label>⏰ <input type="date" id="tj-fecha-vencimiento"></label>
+          <label class="check-periodo-pagado">✔ <input type="checkbox" id="tj-pagado"><span
+              id="tj-pagado-texto"></span></label>
         </div>
       </div>
 
@@ -56,12 +58,17 @@
       <div class="total-mes total-lau">
         Te debe Lau: <span id="total-tarjeta-lau">$0</span>
       </div>
+      <div class="total-mes total-general">
+        Total general: <span id="total-tarjeta-general">$0</span>
+      </div>
+
     </section>
     <section id="tab-impserv" class="tab-content">
       <div class="mes-selector">
         <button id="mes-anterior">◀</button>
         <span id="mes-actual-label"></span>
         <button id="mes-siguiente">▶</button>
+        <button id="copiar-mes-anterior" class="btn-copiar">Copiar mes anterior</button>
       </div>
 
       <div class="botones-rapidos" id="botones-rapidos"></div>
@@ -90,20 +97,6 @@
     </section>
     <section id="tab-extra" class="tab-content">
       <h3 class="subtitulo-extra">Saldos por cuenta</h3>
-      <h3 class="subtitulo-extra">Vencimientos del mes</h3>
-
-      <div class="mes-selector">
-        <button id="ve-mes-anterior">◀</button>
-        <span id="ve-mes-actual-label"></span>
-        <button id="ve-mes-siguiente">▶</button>
-      </div>
-
-      <ul id="lista-vencimientos" class="lista-items"></ul>
-
-      <div class="total-mes">
-        Total vencimientos: <span id="total-vencimientos">$0</span>
-      </div>
-
       <form id="form-cuenta" class="form-item">
         <input type="text" id="cuenta-nombre" placeholder="Nombre" required>
         <input type="text" inputmode="decimal" id="cuenta-saldo" placeholder="Saldo" required>
@@ -119,6 +112,62 @@
 
       <div class="total-mes">
         Total disponible: <span id="total-cuentas">$0</span>
+      </div>
+
+      <h3 class="subtitulo-extra">Ahorro a guardar</h3>
+
+      <form id="form-ahorro" class="form-item">
+        <input type="text" id="ahorro-nombre" placeholder="Nombre / motivo" required>
+        <input type="text" inputmode="decimal" id="ahorro-monto" placeholder="Monto" required>
+        <button type="submit">Agregar</button>
+      </form>
+
+      <ul id="lista-ahorro" class="lista-items"></ul>
+
+      <div class="total-mes">
+        Total a guardar: <span id="total-ahorro">$0</span>
+      </div>
+
+      <h3 class="subtitulo-extra">Disponible diario</h3>
+
+      <div class="disponible-diario-form">
+        <label for="dia-cobro">Próximo cobro:</label>
+        <input type="date" id="dia-cobro">
+      </div>
+
+      <div class="disponible-diario-resultado">
+        <p>Días restantes: <span id="dias-restantes">-</span></p>
+        <p>Disponible por día: <span id="disponible-diario">$0</span></p>
+      </div>
+
+      <section class="bloque-lau">
+        <h3>Debe Lau</h3>
+        <div class="selector-mes">
+          <button id="ld-mes-anterior">◀</button>
+          <span id="ld-mes-actual-label"></span>
+          <button id="ld-mes-siguiente">▶</button>
+        </div>
+        <label class="check-pagado-periodo">
+          <input type="checkbox" id="ld-pagado">
+          <span id="ld-pagado-texto"></span>
+        </label>
+        <ul id="lista-lau"></ul>
+        <p>Pendiente: <span id="total-lau-pendiente">$0,00</span></p>
+      </section>
+      <script type="module" src="js/deudalau.js"></script>
+
+      <h3 class="subtitulo-extra">Vencimientos del mes</h3>
+
+      <div class="mes-selector">
+        <button id="ve-mes-anterior">◀</button>
+        <span id="ve-mes-actual-label"></span>
+        <button id="ve-mes-siguiente">▶</button>
+      </div>
+
+      <ul id="lista-vencimientos" class="lista-items"></ul>
+
+      <div class="total-mes">
+        Total vencimientos: <span id="total-vencimientos">$0</span>
       </div>
     </section>
   </main>

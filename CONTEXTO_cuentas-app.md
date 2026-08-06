@@ -35,106 +35,238 @@ no con fórmulas manuales mes a mes.
 - js/firebase-config.js → conexión a Firebase (claves reales ya cargadas, login OK)
 - js/auth.js → lógica de login
 - js/app.js → protección de ruta, logout, navegación de tabs
-- js/impserv.js → módulo Impuestos y Servicios (COMPLETO y funcionando)
+- js/impserv.js → módulo Impuestos y Servicios (COMPLETO)
+- js/tarjetas.js → módulo Tarjetas (COMPLETO)
+- js/extra.js → módulo Extra: Saldos por cuenta + Ahorro + Disponible diario (COMPLETO)
+- js/vencimientos.js → módulo Extra: Vencimientos del mes (COMPLETO)
 
 Login y navegación YA FUNCIONAN correctamente en producción (GitHub Pages).
 
-## Módulo "Impuestos y Servicios" (tab-impserv) - TERMINADO
+## Módulo "Impuestos y Servicios" (tab-impserv) - COMPLETO
 Funcionalidad implementada:
-- Selector de mes/año (flechas ◀ ▶) para navegar entre meses
-- Accesos rápidos: botones para cargar rápido ítems frecuentes (EPEC, AGUA,
-  GAS, etc.), guardados en Firestore en `users/{uid}/config/accesosRapidos`
-  (editable: se pueden agregar nuevos con el form "+" y quitar con "✕")
-- Formulario para agregar ítem: nombre (se guarda en MAYÚSCULAS), monto, fecha
-  de vencimiento
-- Listado del mes con: checkbox "pagado" (tacha y atenúa la fila), nombre,
+- Selector de mes/año (flechas ◀ ▶)
+- Botón "Copiar mes anterior": trae todos los ítems del mes anterior (nombre,
+  monto, montoLau) con la fecha de vencimiento vacía para completarla a mano
+  (pide confirmación con la cantidad de ítems antes de copiar)
+- Accesos rápidos editables: botones para cargar rápido ítems frecuentes,
+  guardados en `users/{uid}/config/accesosRapidos` (agregar con form "+",
+  quitar con "✕")
+- Formulario para agregar ítem: nombre (MAYÚSCULAS), monto, fecha de
+  vencimiento, monto Lau (opcional)
+- Listado del mes con: checkbox "pagado" (`.check-pagado input`, guarda
+  `pagado: true/false` con updateDoc; tacha y atenúa la fila), nombre,
   monto editable en formato moneda ARS (foco selecciona todo, blur formatea
-  y guarda, Enter quita el foco), fecha editable, botón borrar (🗑 rojo)
+  y guarda, Enter quita el foco), fecha editable (fondo más claro +
+  color-scheme: dark), campo Lau (SOLO se muestra si el ítem tiene
+  montoLau > 0, se carga únicamente desde el formulario al crear el ítem),
+  botón borrar (🗑 rojo)
+- Resaltado de vencimientos: si el ítem no está pagado y la fecha ya pasó,
+  toda la fila (`.item-fila`) se pinta de rojo (`fecha-pasada`); si vence
+  hoy, celeste/azul (`fecha-hoy`, #7aa6c2). Incluye ajustes de color de
+  texto, inputs y checkbox, y botón borrar con fondo oscuro + borde blanco
+  para que no se pierda contra el rojo
 - Total del mes calculado en vivo (suma de Firestore vía onSnapshot)
 - Datos en Firestore: colección `users/{uid}/impuestosServicios`, cada doc:
-  {nombre, monto, vencimiento, mes (0-11), anio, pagado}
+  {nombre, monto, montoLau, vencimiento, mes (0-11), anio, pagado}
 
 Reglas de Firestore ya configuradas (solo el dueño puede leer/escribir sus
 propios datos, patrón `users/{userId}/{document=**}`).
 
-Bugs ya resueltos durante el desarrollo (por si se repiten):
-- Import de Firebase debe ser con URL completa de gstatic, NUNCA estilo npm
-- Falta de índice compuesto en Firestore → Firebase tira un link en el error
-  de consola para crearlo con un clic
-- `iniciarModulo()` usa await, por lo tanto DEBE ser `async function`
-- Ojo con handlers duplicados al editar código (checkbox y borrar se
-  perdieron un par de veces al pegar fragmentos nuevos, hay que revisar que
-  sigan estando dentro de `crearItemHTML`)
-
-## Módulo "Tarjetas" (tab-tarjetas) - TERMINADO
-Archivos: js/tarjetas.js + bloque correspondiente en app.html + estilos en
-css/styles.css.
-
+## Módulo "Tarjetas" (tab-tarjetas) - COMPLETO
 Funcionalidad implementada:
-- Selector de tarjeta (VISA HIPOTECARIO, VISA FRANCES, CORDOBESA,
-  MC MERCADO PAGO) con botones, mismo patrón visual que accesos rápidos
-- Selector de mes/año (flechas ◀ ▶), igual que impserv
-- Fecha de cierre y fecha de vencimiento por período (no por gasto):
-  se guardan en `users/{uid}/tarjetasPeriodos/{tarjeta}_{mes}_{anio}`
-  (doc id armado con `idPeriodo()`, reemplazando espacios de la tarjeta
-  por "_"). Inputs type="date", con `color-scheme: dark` en CSS para que
-  se vean bien sobre fondo oscuro. Se autocargan/autoguardan con
-  onSnapshot + setDoc(merge:true) al cambiar de tarjeta o mes.
+- Selector de tarjeta con botones. Nombres reales confirmados en el array
+  `TARJETAS`: incluye `"CORDOBESA"` (Córdobesa) y `"MC MERCADO PAGO"`
+  (Mercado Pago) — OJO, no "COR" ni "MP", hubo bugs por desfasaje de
+  nombres entre archivos. SIEMPRE verificar el array `TARJETAS` completo y
+  actual de tarjetas.js antes de tocar algo que dependa del nombre de una
+  tarjeta.
+- Selector de mes/año (flechas ◀ ▶)
+- Período por tarjeta (no por gasto), guardado en
+  `users/{uid}/tarjetasPeriodos/{tarjeta}_{mes}_{anio}` (doc id armado con
+  `idPeriodo()`, espacios reemplazados por "_"), con:
+  - Fecha de cierre (`fechaCierre`) y vencimiento (`fechaVencimiento`),
+    inputs dentro de `.periodo-fechas`, autoguardado vía
+    `guardarFechaPeriodo(campo, valor)` → `setDoc(merge:true)`
+  - Checkbox "pagado" (`tj-pagado` + span `tj-pagado-texto`): al tildarlo,
+    guarda `pagado:true` en el doc de tarjetasPeriodos, el contenedor
+    `.periodo-fechas` se resalta (`.periodo-pagado`, fondo celeste tenue +
+    borde) y aparece el texto "PAGADO" en grande al lado del check
+  - `actualizarEstadoPeriodo()` marca `.fecha-pasada`/`.fecha-hoy` en los
+    inputs de cierre/vencimiento comparando con hoy (reglas CSS separadas,
+    NO comparten estilo con `.item-fila` de impserv/vencimientos)
+  - Ítems fijos que se agregan al final de la lista de gastos, calculados
+    y guardados en el doc de tarjetasPeriodos (NO son documentos en la
+    colección `tarjetas`):
+    - CORDOBESA: 3 ítems — IMPUESTO AL SELLO (automático 1.5% de la suma
+      de montos brutos del período, editable con override manual en
+      campo `sello`), COMISIÓN DE MANTENIMIENTO (manual, campo
+      `comision`), IVA (manual, campo `iva`)
+    - MC MERCADO PAGO: 1 ítem — IMPUESTO AL SELLO (mismo criterio:
+      automático 1.5%, override manual en campo `sello`), sin comisión ni
+      IVA
+    - Todos suman al total del mes de esa tarjeta. Función clave:
+      `renderListaYTotales()`, variables globales `comisionActual`,
+      `ivaActual`, `selloManual`. Función que arma cada fijo:
+      `crearItemFijoHTML(nombre, monto, campo)` (campo =
+      "sello"/"comision"/"iva"/null)
 - Formulario para agregar gasto: descripción (MAYÚSCULAS), monto cuota,
-  cuota actual, cuota total (ambas opcionales), monto Lau (opcional),
-  checkbox "Débito automático"
+  cuota actual, cuota total (opcionales), monto Lau (opcional), checkbox
+  "Débito automático"
 - Cuotas: si se cargan cuota actual/total, `guardarGasto()` genera
-  automáticamente un documento por cada cuota restante en los meses
-  siguientes (incrementando mes/año y el número de cuota)
-- Débito automático: si el checkbox está tildado, se generan documentos
-  para los próximos 24 meses (constante `MESES_DEBITO_AUTOMATICO`,
-  ajustable) con el mismo monto, marcados con `debitoAutomatico: true`
-- Listado del período con: nombre + cuota (ej. "8/12"), monto editable
-  en formato moneda ARS (mismo patrón foco/blur/Enter que impserv),
-  monto Lau editable igual, botón borrar (🗑 rojo)
-- Total del período y total Lau calculados en vivo (onSnapshot), separados
+  automáticamente un doc por cada cuota restante en los meses siguientes
+- Débito automático: genera documentos para los próximos 24 meses
+  (constante `MESES_DEBITO_AUTOMATICO`), marcados con `debitoAutomatico: true`
+- Listado del período: nombre + cuota (ej. "8/12"), monto editable, campo
+  Lau (solo si montoLau > 0), botón borrar. Función que arma cada gasto:
+  `crearItemHTML()`
+- Totales del período, en vivo: "Total del mes" (lo que le corresponde
+  pagar al usuario: resta montoLau de cada ítem + suma los fijos de la
+  tarjeta si aplica), "Te debe Lau" (suma de todos los montoLau), y
+  "Total general" (Total del mes + Te debe Lau = total real de la tarjeta,
+  bruto)
 - Datos en Firestore: colección `users/{uid}/tarjetas`, cada doc:
   {tarjeta, descripcion, monto, montoLau, cuotaActual, cuotaTotal, mes
   (0-11), anio, debitoAutomatico}
-- Query con `where tarjeta/mes/anio` + `orderBy descripcion` → puede pedir
-  crear índice compuesto en Firestore (mismo patrón que impserv)
+- Query con `where tarjeta/mes/anio` + `orderBy descripcion` → requiere
+  índice compuesto en Firestore (ya creado). Snapshot se guarda en
+  `ultimoItemsSnapshot` (variable global) y se renderiza con
+  `renderListaYTotales()`, separado del listener de Firestore
+  (`escucharDatos()`), para poder re-renderizar cuando cambian
+  comisión/IVA/sello sin necesidad de un nuevo snapshot de gastos
 
-Notas de CSS relevantes:
-- `.periodo-fechas` (contenedor de fechas cierre/vencimiento): sutil,
-  `color: var(--text-dim)`, íconos 🔒 y ⏰ en vez de labels de texto,
-  inputs con fondo transparente y `color-scheme: dark`
-- `.check-debito`: checkbox de débito automático en su propia línea
-  (`flex: 1 1 100%; order: 10;`) para no achicar los demás inputs del
-  form (requiere que `.form-item` sea `display:flex; flex-wrap:wrap`)
-- Marcado visual de cierre/vencimiento: `actualizarEstadoPeriodo()` compara
-  con la fecha de hoy (string ISO) y agrega clases CSS a los inputs de
-  fecha: `.fecha-pasada` (rojo, `--error`) si cierre o vencimiento ya
-  pasaron, `.fecha-hoy` (dorado, `--accent`, negrita) si el vencimiento es
-  justo hoy. Se llama desde dentro del onSnapshot de
-  `escucharFechasPeriodo()` cada vez que cambian los datos del período.
+## Módulo "Extra" (tab-extra) - Saldos por cuenta - COMPLETO
+- Formulario: nombre, saldo (input tipo texto con formato moneda),
+  `<select id="cuenta-tipo">` con: banco / billetera / efectivo
+- Se muestran como tarjetas/cuadros, agrupadas en FILAS HORIZONTALES por
+  tipo, orden: Billetera → Banco → Efectivo. Fila con título a la
+  izquierda (`.titulo-fila-cuenta`) y tarjetas a la derecha
+  (`.grupo-cuentas`, flex-wrap)
+- Cada tarjeta (`.item-cuenta`): ícono según tipo (`ICONOS_TIPO`), nombre,
+  saldo editable (patrón foco/blur/Enter), botón borrar arriba a la
+  derecha (position: absolute)
+- Total disponible calculado en vivo (suma de todas las cuentas), guardado
+  en variable global `totalCuentasActual` (usada también por Disponible
+  diario)
+- Datos en Firestore: colección `users/{uid}/cuentas`, cada doc:
+  {nombre, saldo, tipo}
+- El elemento de cada cuenta es un `<div>` (no `<li>`), contenedor
+  `#lista-cuentas` es `<div>` (no `<ul>`)
+
+## Módulo "Extra" (tab-extra) - Ahorro a guardar - COMPLETO
+- Formulario simple: nombre/motivo, monto → botón Agregar
+- Listado editable (mismo patrón foco/blur/Enter para el monto), botón
+  borrar
+- Total a guardar en vivo, guardado en variable global `totalAhorroActual`
+  (usada por Disponible diario)
+- Datos en Firestore: colección `users/{uid}/ahorros`, cada doc:
+  {nombre, monto}
+
+## Módulo "Extra" (tab-extra) - Disponible diario - COMPLETO
+- Un solo input de fecha (`#dia-cobro`, "Próximo cobro"), autoguardado en
+  `users/{uid}/config/diaCobro` (campo `fecha`) vía `guardarDiaCobro()` +
+  autocargado con onSnapshot vía `escucharDiaCobro()`
+- Cálculo (`calcularDisponibleDiario()`, es `async`): días restantes =
+  diferencia en días entre hoy y la fecha de cobro (mínimo 1 para evitar
+  división por cero); disponible por día = (totalCuentasActual -
+  totalAhorroActual - totalVencimientos) / días restantes
+- `totalVencimientos` se obtiene con `calcularTotalVencimientosMes(uid,
+  mesActual, anioActual)`, función definida y exportada desde
+  `vencimientos.js` (mismo cálculo que usa ese módulo: impuestos/servicios
+  no pagados del mes + vencimientos de tarjetas no pagados, con
+  sello/comisión/IVA de CORDOBESA y MC MERCADO PAGO incluidos)
+- Se recalcula automáticamente cada vez que cambian: el total de cuentas,
+  el total de ahorro, o la fecha de cobro (se llama `calcularDisponibleDiario()`
+  sin `await` desde esos 3 listeners `onSnapshot`, es válido en JS aunque
+  la función sea async — no hace falta esperarla ahí)
+- OJO: cualquier callback de `onSnapshot` que haga `await calcularDisponibleDiario()`
+  (o cualquier otro await) DEBE declararse como `async (snapshot) => {...}`,
+  si no tira `SyntaxError: Unexpected reserved word` (pasó en `escucharAhorro`)
+
+## Módulo "Extra" (tab-extra) - Vencimientos del mes - COMPLETO
+Archivo: js/vencimientos.js. Consolida en una sola lista, ordenada por
+fecha de vencimiento ascendente:
+- Ítems de Impuestos y Servicios del mes que NO están pagados (se
+  filtran con `.filter(item => !item.pagado)` ANTES de mapear el array —
+  esta línea se pisó sin querer una vez al agregar los listeners de
+  tarjetas, ojo si se vuelve a tocar `escucharTodo()`), con nombre y monto
+  (monto - montoLau)
+- Vencimientos de tarjetas del mes: para cada tarjeta del array `TARJETAS`
+  (debe coincidir EXACTO con el de tarjetas.js, incluyendo "CORDOBESA" y
+  "MC MERCADO PAGO"), lee el doc de tarjetasPeriodos
+  (`idPeriodoTarjeta(tarjeta)`, mismo formato que `idPeriodo()` de
+  tarjetas.js) y si tiene `fechaVencimiento` Y `pagado` es falso: suma el
+  monto BRUTO de todos los gastos de esa tarjeta en el período (sin restar
+  montoLau — acá se quiere el total general, no lo que le toca solo al
+  usuario), y si la tarjeta es CORDOBESA o MC MERCADO PAGO, replica el
+  mismo cálculo de sello/comisión/IVA que tarjetas.js (mismos campos del
+  doc de tarjetasPeriodos: `sello`, `comision`, `iva`) para que el monto
+  mostrado sea el total real a pagar de esa tarjeta, no solo la suma de
+  consumos. Si `pagado` es true, se excluye de la lista.
+- Selector de mes/año propio, independiente del de impserv/tarjetas
+- Cada fila muestra: nombre + tipo entre paréntesis ("Impuesto/Servicio" o
+  "Tarjeta"), fecha formateada, monto
+- Resaltado: mismo criterio que impserv — fila completa roja si venció
+  (`fecha-pasada`), celeste/azul si vence hoy (`fecha-hoy`, #7aa6c2).
+  Reglas CSS compartidas con impserv.js sobre `.item-fila`
+- Total general de vencimientos del mes en vivo
+- TIEMPO REAL COMPLETO: usa onSnapshot tanto para impuestosServicios como
+  para CADA período de tarjeta (`unsubscribesPeriodos`, un listener por
+  tarjeta sobre su doc en tarjetasPeriodos). Cualquier cambio en fecha de
+  vencimiento, comisión, IVA, sello o el checkbox "pagado" de cualquier
+  tarjeta dispara `renderCombinado()` sin necesidad de F5. La suma de
+  gastos de cada tarjeta sigue siendo una lectura puntual (`getDocs`)
+  dentro de `obtenerVencimientosTarjetas()`, ejecutada cada vez que se
+  llama a `renderCombinado()`
+- No requiere índice compuesto extra: las queries de suma por tarjeta usan
+  solo igualdades (where tarjeta/mes/anio sin orderBy)
+- Exporta `calcularTotalVencimientosMes(uid, mes, anio)`: versión reusable
+  del mismo cálculo (impuestos/servicios no pagados + tarjetas no pagadas
+  con sello/comisión/IVA), usada por `extra.js` para Disponible diario, sin
+  tocar el DOM (a diferencia de `renderCombinado()`, que sí lo hace)
+
+## Patrón "Monto Lau" (compartido entre impserv.js y tarjetas.js)
+La mayoría de los ítems los paga el usuario completo; muy pocos se
+dividen con Lau (esposa). El campo Lau:
+- Se carga SOLO desde el formulario al crear el ítem (input opcional)
+- En el listado, el input de Lau de un ítem SOLO aparece si ese ítem ya
+  tiene `montoLau > 0`. Si no, no se muestra nada (sin botón "+ Lau")
+- Dentro de cada módulo (impserv, tarjetas) el monto Lau se resta del
+  total "normal" del usuario y se suma aparte en "Te debe Lau"
+- En Vencimientos (Extra) es distinto a propósito: ahí se quiere ver el
+  total GENERAL (bruto, sin restar Lau), porque lo que importa en esa
+  pantalla es cuánta plata hay que tener disponible para pagar ese
+  vencimiento completo, no solo la parte del usuario
+
+## Bugs ya resueltos durante el desarrollo (por si se repiten)
+- Import de Firebase debe ser con URL completa de gstatic, NUNCA estilo npm
+- Falta de índice compuesto en Firestore → Firebase tira un link en el error
+  de consola para crearlo con un clic (afecta queries con where + orderBy
+  combinados; queries solo con where/igualdades no lo necesitan)
+- Funciones que usan `await` deben ser `async function`
+- Ojo con handlers duplicados al editar/pegar fragmentos: revisar que
+  sigan estando dentro de la función que arma cada ítem
+- Inputs de fecha muy oscuros por defecto: siempre agregar `background`
+  más claro + `color-scheme: dark`
+- Botón de borrar (rojo) se mezcla si la fila también está pintada de rojo
+  (fecha-pasada): requiere fondo oscuro + borde blanco en ese caso
+- Desfasaje de nombres de tarjetas entre archivos (tarjetas.js usa
+  "CORDOBESA"/"MC MERCADO PAGO", vencimientos.js tuvo nombres viejos
+  desactualizados más de una vez) rompe en silencio las queries —
+  SIEMPRE verificar que el array `TARJETAS` sea idéntico en tarjetas.js y
+  vencimientos.js
+- Datos que dependen de otra colección/doc (ej. vencimientos de tarjetas
+  en Extra) necesitan listeners propios (onSnapshot) para actualizarse
+  solos; una lectura puntual (getDocs/getDoc) sin listener requiere F5
+- Al pegar fragmentos nuevos dentro de una función grande (ej.
+  `escucharTodo()` en vencimientos.js), es fácil pisar sin querer líneas
+  de lógica ya existente (pasó con el filtro `!item.pagado`) — conviene
+  revisar el bloque completo después de cada cambio grande, no solo la
+  parte nueva
 
 ## Próximo módulo a construir
-Extra: por ahora el tab solo tiene un placeholder en app.html
-(`<section id="tab-extra">` con un `<p>` de texto). Arrancando por
-"Saldos por cuenta bancaria y efectivo" (primera parte a construir dentro
-de Extra). Después queda pendiente: ahorro, días para cobrar/disponible
-diario, gastos de LAU, vencimientos próximos consolidados.
-
-### Saldos por cuenta - en construcción
-- Tipos de cuenta: banco, billetera (billetera virtual), efectivo
-- Formulario en app.html (tab-extra): nombre, saldo, `<select id="cuenta-tipo">`
-  con esas 3 opciones (value: banco/billetera/efectivo)
-- Diferenciación visual: cada `<li class="item-cuenta ${tipo}">` tiene un
-  borde izquierdo de color distinto por tipo (`.banco` → var(--accent),
-  `.billetera` → #7aa6c2, `.efectivo` → var(--text-dim)) + ícono según
-  `ICONOS_TIPO = { banco: "🏦", billetera: "📱", efectivo: "💵" }`
-  (constante definida en js/extra.js junto a las demás constantes globales)
-- Archivo js/extra.js: todavía no creado, en construcción
-
-## Pendiente para módulos futuros
-- Total: resumen calculado sumando tarjetas + impuestos/servicios,
-  ingreso mensual, diferencia
-- Extra: resto de las partes además de saldos por cuenta (ver arriba)
+Pantalla TOTAL (tab-total): resumen mensual sumando tarjetas +
+impuestos/servicios, ingreso mensual, diferencia disponible. Por ahora es
+un tab vacío/placeholder, no se empezó a construir todavía.
 
 ## Nota de seguridad
 La planilla original (IMP-SERV) tenía contraseñas y datos sensibles en
@@ -143,8 +275,9 @@ app tal cual; se dejan fuera o se manejan aparte.
 
 ## Preferencias de trabajo del usuario
 - Modo "principiante": indicar directamente qué parte del código cambiar
-  o agregar, con mínima explicación (no hace falta justificar el porqué
-  salvo que se pregunte), un cambio a la vez, paso a paso
+  o agregar, con mínima explicación, un cambio a la vez, paso a paso
+- Prefiere que se le indique solo el fragmento a cambiar, NO el archivo
+  completo (para ahorrar cuota), salvo que sea un archivo nuevo
 - Trabaja en español
 - Ya tiene experiencia con este mismo stack (Firebase + vanilla JS +
   GitHub Pages) en otros dos proyectos propios

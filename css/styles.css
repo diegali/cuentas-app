@@ -198,6 +198,64 @@ button:hover {
   border-radius: 4px;
   padding: 4px 6px;
   font-size: 13px;
+  color-scheme: dark;
+}
+
+#is-vencimiento {
+  background: #2e323c;
+  color: var(--text);
+  color-scheme: dark;
+}
+
+.item-fila.fecha-pasada {
+  background: var(--error);
+}
+
+.item-fila.fecha-pasada .item-nombre,
+.item-fila.fecha-pasada .item-fecha,
+.item-fila.fecha-pasada .item-monto,
+.item-fila.fecha-pasada .item-cuota {
+  color: #fff;
+}
+
+.item-fila.fecha-hoy {
+  background: #7aa6c2;
+}
+
+.item-fila.fecha-hoy .item-nombre,
+.item-fila.fecha-hoy .item-fecha,
+.item-fila.fecha-hoy .item-monto,
+.item-fila.fecha-hoy .item-cuota {
+  color: #0f1115;
+}
+
+.item-fila.fecha-pasada .check-pagado,
+.item-fila.fecha-hoy .check-pagado {
+  filter: brightness(0) invert(1);
+}
+
+.item-fila.fecha-pasada .item-monto-input,
+.item-fila.fecha-pasada .item-fecha-input,
+.item-fila.fecha-pasada .item-lau-input,
+.item-fila.fecha-hoy .item-monto-input,
+.item-fila.fecha-hoy .item-fecha-input,
+.item-fila.fecha-hoy .item-lau-input {
+  background: rgba(255, 255, 255, 0.15);
+  color: inherit;
+  border-color: transparent;
+}
+
+.item-fila.fecha-pasada .btn-borrar {
+  background: #0f1115;
+  border: 1px solid #fff;
+}
+
+.btn-copiar {
+  background: #23262e;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 4px 10px;
+  font-size: 12px;
 }
 
 .item-monto-input {
@@ -368,6 +426,17 @@ button:hover {
   font-weight: bold;
 }
 
+input.fecha-pasada {
+  border-bottom-color: var(--error);
+  color: var(--error);
+}
+
+input.fecha-hoy {
+  border-bottom-color: var(--accent);
+  color: var(--accent);
+  font-weight: bold;
+}
+
 .subtitulo-extra {
   color: var(--accent);
   margin-bottom: 12px;
@@ -445,4 +514,67 @@ button:hover {
 .item-cuenta .item-monto-input {
   text-align: center;
   width: 100%;
+}
+
+.disponible-diario-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.disponible-diario-form input {
+  background: #2e323c;
+  color: var(--text);
+  color-scheme: dark;
+}
+
+.disponible-diario-resultado p {
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.disponible-diario-resultado span {
+  color: var(--accent);
+  font-weight: bold;
+}
+
+.item-fijo {
+  opacity: 0.85;
+  font-style: italic;
+}
+
+.total-general {
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.check-periodo-pagado {
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.periodo-fechas.periodo-pagado {
+  background: rgba(122, 166, 194, 0.15);
+  border: 1px solid #7aa6c2;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.periodo-fechas.periodo-pagado .check-periodo-pagado {
+  color: #7aa6c2;
+  font-weight: bold;
+}
+
+#tj-pagado-texto {
+  font-size: 18px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  margin-left: 6px;
+}
+
+.bloque-lau {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
