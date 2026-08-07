@@ -396,10 +396,6 @@ button:hover {
   outline: none;
 }
 
-.form-item {
-  flex-wrap: wrap;
-}
-
 .check-debito {
   display: flex;
   align-items: center;
@@ -557,10 +553,11 @@ input.fecha-hoy {
   font-weight: normal;
   color: var(--text-dim);
   cursor: pointer;
-  border: 1px solid rgba(255,255,255,0.15);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 20px;
   padding: 3px 10px;
 }
+
 .check-periodo-pagado input[type="checkbox"] {
   width: 13px;
   height: 13px;
@@ -599,9 +596,10 @@ input.fecha-hoy {
   color: var(--accent);
   margin-bottom: 1rem;
 }
+
 .separador-extra {
   border: none;
-  border-top: 1px solid rgba(255,255,255,0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   margin: 1.5rem 0 1rem;
 }
 
@@ -623,4 +621,84 @@ input.fecha-hoy {
   padding: 4px 10px;
   color: #7aa6c2;
   font-weight: bold;
+}
+
+.cuenta-icono img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.grilla-total {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-top: 1rem;
+}
+
+.card-mes-total {
+  background: var(--card);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 14px 16px;
+  transition: border-color 0.15s;
+}
+
+.card-mes-total h4 {
+  margin: 0 0 10px;
+  color: var(--text);
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.card-mes-total.mes-actual {
+  border: 1.5px solid var(--accent);
+  background: rgba(212, 175, 55, 0.06);
+}
+
+.card-mes-total.mes-actual h4 {
+  color: var(--accent);
+}
+
+.fila-dato {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  padding: 4px 0;
+}
+
+.fila-dato .input-ingreso {
+  width: 85px;
+  text-align: right;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text);
+  font-size: 0.78rem;
+  padding: 2px 0;
+}
+
+.fila-dato .input-ingreso:focus {
+  outline: none;
+  border-bottom-color: var(--accent);
+}
+
+.fila-diferencia {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.diferencia-positiva {
+  color: #6cbf6c;
+}
+
+.diferencia-negativa {
+  color: var(--error);
 }

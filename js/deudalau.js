@@ -1,4 +1,5 @@
 import { auth, db } from "./firebase-config.js";
+import { formatearMonto } from "./utils.js";
 import { onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
@@ -35,11 +36,6 @@ function iniciarModulo() {
     document.getElementById("ld-pagado").addEventListener("change", async (e) => {
         await setDoc(doc(db, "users", uid, "lauPeriodos", idPeriodoLau()), { pagado: e.target.checked }, { merge: true });
     });
-}
-
-
-function formatearMonto(valor) {
-    return valor.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
 }
 
 function escucharTodo() {

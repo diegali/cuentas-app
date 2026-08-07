@@ -1,12 +1,11 @@
 import { auth, db } from "./firebase-config.js";
+import { formatearMonto, TARJETAS, obtenerHoyISO, armarIdPeriodo } from "./utils.js";
 import { onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   collection, addDoc, deleteDoc, doc, updateDoc, setDoc, getDoc,
   query, where, onSnapshot, orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-const TARJETAS = ["VISA HIPOTECARIO", "VISA FRANCES", "CORDOBESA", "MC MERCADO PAGO"];
 
 const MESES = [
   "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
@@ -35,7 +34,7 @@ onAuthStateChanged(auth, (user) => {
 });
 
 function idPeriodo() {
-  return `${tarjetaActual.replace(/\s+/g, "_")}_${mesActual}_${anioActual}`;
+  return armarIdPeriodo(tarjetaActual, mesActual, anioActual);
 }
 
 function escucharFechasPeriodo() {
@@ -62,7 +61,7 @@ async function guardarFechaPeriodo(campo, valor) {
 }
 
 function actualizarEstadoPeriodo(fechaCierre, fechaVencimiento) {
-  const hoyStr = new Date().toISOString().slice(0, 10);
+  const hoyStr = obtenerHoyISO();
   const inputCierre = document.getElementById("tj-fecha-cierre");
   const inputVenc = document.getElementById("tj-fecha-vencimiento");
 
@@ -215,11 +214,11 @@ function renderListaYTotales() {
   }
 
   document.getElementById("total-tarjeta").textContent =
-    total.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
+    formatearMonto(total);
   document.getElementById("total-tarjeta-lau").textContent =
-    totalLau.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
+    formatearMonto(totalLau);
   document.getElementById("total-tarjeta-general").textContent =
-    (total + totalLau).toLocaleString("es-AR", { style: "currency", currency: "ARS" });
+    formatearMonto(total + totalLau);
 }
 
 function crearItemHTML(id, item) {
@@ -232,8 +231,8 @@ function crearItemHTML(id, item) {
 
   li.innerHTML = `
     <span class="item-nombre">${item.descripcion} <span class="item-cuota">(${cuotaTexto})</span></span>
-    <input type="text" inputmode="decimal" class="item-monto-input" value="${item.monto.toLocaleString("es-AR", { style: "currency", currency: "ARS" })}">
-    ${item.montoLau ? `<input type="text" inputmode="decimal" class="item-lau-input" placeholder="Lau" value="${item.montoLau.toLocaleString("es-AR", { style: "currency", currency: "ARS" })}">` : ""}
+    <input type="text" inputmode="decimal" class="item-monto-input" value="${formatearMonto(item.monto)}">
+    ${item.montoLau ? `<input type="text" inputmode="decimal" class="item-lau-input" placeholder="Lau" value="${formatearMonto(item.montoLau)}">` : ""}
     <button class="btn-borrar">🗑</button>
   `;
 
@@ -253,7 +252,7 @@ function crearItemHTML(id, item) {
         const decimal = texto.slice(ultimoSeparador + 1);
         valor = parseFloat(entero + "." + decimal) || 0;
       }
-      e.target.value = valor.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
+      e.target.value = formatearMonto(valor);
       await updateDoc(doc(db, "users", uid, "tarjetas", id), { [campo]: valor });
     });
     input.addEventListener("keydown", (e) => {
@@ -282,14 +281,14 @@ function crearItemFijoHTML(nombre, monto, campo) {
   if (campo === null) {
     li.innerHTML = `
       <span class="item-nombre">${nombre}</span>
-      <span class="item-monto">${monto.toLocaleString("es-AR", { style: "currency", currency: "ARS" })}</span>
+      <span class="item-monto">${formatearMonto(monto)}</span>
     `;
     return li;
   }
 
   li.innerHTML = `
     <span class="item-nombre">${nombre}</span>
-    <input type="text" inputmode="decimal" class="item-monto-input" value="${monto.toLocaleString("es-AR", { style: "currency", currency: "ARS" })}">
+    <input type="text" inputmode="decimal" class="item-monto-input" value="${formatearMonto(monto)}">
   `;
 
   const input = li.querySelector(".item-monto-input");
@@ -308,7 +307,7 @@ function crearItemFijoHTML(nombre, monto, campo) {
       const decimal = texto.slice(ultimoSeparador + 1);
       valor = parseFloat(entero + "." + decimal) || 0;
     }
-    e.target.value = valor.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
+    e.target.value = formatearMonto(valor);
     await guardarFechaPeriodo(campo, valor);
   });
   input.addEventListener("keydown", (e) => {

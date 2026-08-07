@@ -28,7 +28,10 @@ no con fórmulas manuales mes a mes.
 
 ## Estado actual del proyecto (archivos ya creados y funcionando)
 - index.html → login (email/contraseña)
-- app.html → shell principal con 4 tabs: Total, Tarjetas, Imp. y Servicios, Extra
+- app.html → shell principal con 4 tabs, en este ORDEN: **Panel** (antes
+  llamado "Extra", es el tab activo por defecto al abrir la app —
+  `data-tab="extra"` se mantuvo igual en el código, solo cambió el texto
+  visible del botón a "Panel"), Total, Tarjetas, Imp. y Servicios
 - css/styles.css → tema oscuro con acento dorado. Variables reales en :root:
   --bg: #0f1115; --card: #1a1d24; --accent: #d4af37; --text: #eaeaea;
   --text-dim: #9a9a9a; --error: #e05c5c
@@ -40,6 +43,7 @@ no con fórmulas manuales mes a mes.
 - js/extra.js → módulo Extra: Saldos por cuenta + Ahorro + Disponible diario (COMPLETO)
 - js/vencimientos.js → módulo Extra: Vencimientos del mes (COMPLETO)
 - js/deudalau.js → módulo Extra: Debe Lau (COMPLETO)
+- js/total.js → módulo Total: resumen anual comparativo (COMPLETO)
 
 Login y navegación YA FUNCIONAN correctamente en producción (GitHub Pages).
 
@@ -142,9 +146,21 @@ Funcionalidad implementada:
   tipo, orden: Billetera → Banco → Efectivo. Fila con título a la
   izquierda (`.titulo-fila-cuenta`) y tarjetas a la derecha
   (`.grupo-cuentas`, flex-wrap)
-- Cada tarjeta (`.item-cuenta`): ícono según tipo (`ICONOS_TIPO`), nombre,
-  saldo editable (patrón foco/blur/Enter), botón borrar arriba a la
-  derecha (position: absolute)
+- Cada tarjeta (`.item-cuenta`): ícono según tipo (`ICONOS_TIPO`) o logo
+  personalizado si el ítem tiene el campo `logo` cargado, nombre, saldo
+  editable (patrón foco/blur/Enter), botón borrar arriba a la derecha
+  (position: absolute)
+- Logo personalizado (opcional, por cuenta): campo de texto `#cuenta-logo`
+  donde se escribe solo el NOMBRE del archivo (ej. `galicia.png`, sin
+  ruta). Las imágenes las sube el usuario a mano a la carpeta
+  `assets/logos/` del repo (no hay picker de sistema operativo ni
+  Firebase Storage, es solo texto + carpeta estática). En
+  `crearItemHTML()`, si `item.logo` existe, se muestra
+  `<img src="assets/logos/${item.logo}">` en vez del emoji de
+  `ICONOS_TIPO` (tamaño 32x32px en CSS, `.cuenta-icono img`). OJO: el
+  campo `logo` debe agregarse explícitamente al objeto del `addDoc` en
+  `guardarCuenta()` — se pisó una vez sin querer, quedaba leído pero
+  nunca guardado, por eso el logo no aparecía pese a estar bien escrito
 - Total disponible calculado en vivo (suma de todas las cuentas), guardado
   en variable global `totalCuentasActual` (usada también por Disponible
   diario)
@@ -360,11 +376,51 @@ dividen con Lau (esposa). El campo Lau:
   reglas CSS viejas sin usar (ej. `.check-pagado-periodo`,
   `.selector-mes.periodo-pagado`) — conviene pedir que se pase el CSS
   completo de la zona de vez en cuando para limpiar lo que ya no aplica
+- Un `${variable}` escrito directo en un archivo `.html` es texto LITERAL,
+  no se evalúa (eso solo funciona dentro de template strings en `.js`) —
+  pasó con el título de Total, mostraba `${anioActual}` tal cual en
+  pantalla; la solución es un `<span>` vacío + `textContent` seteado
+  desde JS
+
+## Módulo "Total" (tab-total) - COMPLETO
+Archivo: js/total.js. Grilla de 12 tarjetas (4 columnas x 3 filas fijas,
+`.grilla-total`), una por mes del año actual (ENERO a DICIEMBRE, año fijo
+= `new Date().getFullYear()`, sin selector de año todavía). Cada tarjeta
+(`.card-mes-total`) muestra: nombre del mes, Ingreso (editable), Tarjetas,
+Imp./Servicios, Diferencia — reemplazó al diseño original de tabla, que
+se descartó por pedido del usuario a favor de este formato tipo card
+- Tarjetas e Imp./Servicios: se traen TODO el año de una sola vez con
+  onSnapshot (`where anio == anioActual`, sin filtrar por mes) y se
+  agrupan en el navegador en arrays de 12 posiciones
+  (`totalesTarjetas`, `totalesImpserv`, índice = mes 0-11), en vez de
+  hacer 12 queries separadas
+- IMPORTANTE: ambos montos son NETOS (`item.monto - (item.montoLau ||
+  0)`, restando la parte de Lau), NO brutos — a propósito distinto del
+  criterio de Vencimientos (Extra), que sí usa monto bruto. Acá se quiere
+  ver solo lo que le corresponde pagar al usuario, mismo criterio que
+  "Total del mes" en Tarjetas/Imp. y Servicios
+- Ingreso: editable directo en cada tarjeta (mismo patrón foco/blur/Enter
+  que el resto de la app), guardado en `users/{uid}/ingresos/{mes}_{anio}`:
+  {mes, anio, monto}, vía setDoc(merge:true)
+- Diferencia = Ingreso - Tarjetas - Imp./Servicios, en verde si es
+  positiva (`.diferencia-positiva`) o rojo si es negativa
+  (`.diferencia-negativa`)
+- La tarjeta del mes actual (comparando con `new Date()`) se resalta con
+  borde dorado + fondo tenue dorado (`.mes-actual`)
+- Título "Resumen {año}" con el año insertado por JS en
+  `#anio-total-label` (NO usar `${anioActual}` directo en el HTML, eso es
+  solo texto literal ahí, no se evalúa — hay que setear el `textContent`
+  desde `iniciarModulo()`)
+- Se recalcula y re-renderiza toda la grilla (`renderTabla()`, nombre de
+  función se mantuvo aunque ya no arma una tabla) cada vez que cambia
+  cualquiera de los 3 listeners (tarjetas, impuestosServicios, ingresos)
 
 ## Próximo módulo a construir
-Pantalla TOTAL (tab-total): resumen mensual sumando tarjetas +
-impuestos/servicios, ingreso mensual, diferencia disponible. Por ahora es
-un tab vacío/placeholder, no se empezó a construir todavía.
+No queda ningún módulo pendiente de los 4 tabs originales (Total,
+Tarjetas, Imp. y Servicios, Panel/Extra) — los 4 están completos. Posibles
+mejoras futuras a evaluar más adelante: selector de año en la pantalla
+Total (hoy fijo al año actual), selector visual de logos por carpeta
+(se probó y se descartó por ahora, quedó en modo texto simple).
 
 ## Nota de seguridad
 La planilla original (IMP-SERV) tenía contraseñas y datos sensibles en

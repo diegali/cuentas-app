@@ -1,11 +1,10 @@
 import { auth, db } from "./firebase-config.js";
+import { formatearMonto, TARJETAS, obtenerHoyISO, clasificarFecha, armarIdPeriodo } from "./utils.js";
 import { onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   collection, doc, getDoc, getDocs, query, where, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-const TARJETAS = ["VISA HIPOTECARIO", "VISA FRANCES", "CORDOBESA", "MC MERCADO PAGO"];
 
 const MESES = [
   "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
@@ -35,14 +34,8 @@ function iniciarModulo() {
   escucharTodo();
 }
 
-
-
-function formatearMonto(valor) {
-  return valor.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
-}
-
 function idPeriodoTarjeta(tarjeta) {
-  return `${tarjeta.replace(/\s+/g, "_")}_${mesActual}_${anioActual}`;
+  return armarIdPeriodo(tarjeta, mesActual, anioActual);
 }
 
 function escucharTodo() {
@@ -139,12 +132,7 @@ async function renderCombinado() {
       ? new Date(item.vencimiento + "T00:00:00").toLocaleDateString("es-AR")
       : "-";
 
-    const hoyISO = new Date().toISOString().slice(0, 10);
-    let claseFecha = "";
-    if (item.vencimiento) {
-      if (item.vencimiento < hoyISO) claseFecha = "fecha-pasada";
-      else if (item.vencimiento === hoyISO) claseFecha = "fecha-hoy";
-    }
+    const claseFecha = clasificarFecha(item.vencimiento, obtenerHoyISO());
 
     const li = document.createElement("li");
     li.className = `item-fila ${claseFecha}`;

@@ -15,16 +15,18 @@
   </header>
 
   <nav class="tabs">
-    <button class="tab-btn active" data-tab="total">Total</button>
+    <button class="tab-btn active" data-tab="extra">Panel</button>
     <button class="tab-btn" data-tab="tarjetas">Tarjetas</button>
     <button class="tab-btn" data-tab="impserv">Imp. y Servicios</button>
-    <button class="tab-btn" data-tab="extra">Extra</button>
+    <button class="tab-btn" data-tab="total">Total</button>
   </nav>
 
   <main id="contenido">
-    <section id="tab-total" class="tab-content active">
-      <p>Acá va el resumen mensual (próximo paso).</p>
+    <section id="tab-total" class="tab-content">
+      <h3 class="subtitulo-extra">Resumen <span id="anio-total-label"></span></h3>
+      <div class="grilla-total" id="grilla-total"></div>>
     </section>
+    <script type="module" src="js/total.js"></script>
     <section id="tab-tarjetas" class="tab-content">
       <div class="tarjeta-selector" id="tarjeta-selector"></div>
 
@@ -95,7 +97,7 @@
         Te debe Lau: <span id="total-lau">$0</span>
       </div>
     </section>
-    <section id="tab-extra" class="tab-content">
+    <section id="tab-extra" class="tab-content active">
       <div class="mes-extra-header">📅 <span id="mes-extra-label"></span></div>
       <h3 class="subtitulo-extra">Saldos por cuenta</h3>
       <form id="form-cuenta" class="form-item">
@@ -106,41 +108,41 @@
           <option value="billetera">Billetera</option>
           <option value="efectivo">Efectivo</option>
         </select>
+        <input type="text" id="cuenta-logo" placeholder="Logo (ej: bancon.png)">
         <button type="submit">Agregar</button>
       </form>
-
       <div id="lista-cuentas"></div>
-
       <div class="total-mes">
         Total disponible: <span id="total-cuentas">$0</span>
       </div>
-
       <h3 class="subtitulo-extra">Ahorro a guardar</h3>
-
       <form id="form-ahorro" class="form-item">
         <input type="text" id="ahorro-nombre" placeholder="Nombre / motivo" required>
         <input type="text" inputmode="decimal" id="ahorro-monto" placeholder="Monto" required>
         <button type="submit">Agregar</button>
       </form>
-
       <ul id="lista-ahorro" class="lista-items"></ul>
-
       <div class="total-mes">
         Total a guardar: <span id="total-ahorro">$0</span>
       </div>
-
       <h3 class="subtitulo-extra">Disponible diario</h3>
-
       <div class="disponible-diario-form">
         <label for="dia-cobro">Próximo cobro:</label>
         <input type="date" id="dia-cobro">
       </div>
-
       <div class="disponible-diario-resultado">
         <p>Días restantes: <span id="dias-restantes">-</span></p>
         <p>Disponible por día: <span id="disponible-diario">$0</span></p>
       </div>
-
+      <hr class="separador-extra">
+      <section class="bloque-vencimientos">
+        <h3>Vencimientos del mes</h3>
+        <hr class="separador-extra">
+        <ul id="lista-vencimientos" class="lista-items"></ul>
+        <div class="total-mes">
+          Total vencimientos: <span id="total-vencimientos">$0</span>
+        </div>
+      </section>
       <section class="bloque-lau">
         <div class="titulo-con-check">
           <h3>Debe Lau <label class="check-periodo-pagado"><input type="checkbox" id="ld-pagado"><span
@@ -153,17 +155,8 @@
         </div>
         <hr class="separador-extra">
       </section>
-
-      <section class="bloque-vencimientos">
-        <h3>Vencimientos del mes</h3>
-        <hr class="separador-extra">
-        <ul id="lista-vencimientos" class="lista-items"></ul>
-        <div class="total-mes">
-          Total vencimientos: <span id="total-vencimientos">$0</span>
-        </div>
-      </section>
-
-      <script type="module" src="js/deudalau.js"></script>
+    </section>
+    <script type="module" src="js/deudalau.js"></script>
   </main>
 
   <script type="module" src="js/firebase-config.js"></script>

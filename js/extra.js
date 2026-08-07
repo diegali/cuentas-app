@@ -1,4 +1,5 @@
 import { auth, db } from "./firebase-config.js";
+import { TARJETAS } from "./utils.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { calcularTotalVencimientosMes } from "./vencimientos.js";
 import { calcularTotalLauPendiente } from "./deudalau.js";
@@ -7,7 +8,6 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const ICONOS_TIPO = { banco: "🏦", billetera: "📱", efectivo: "💵" };
-const TARJETAS = ["VISA HIPOTECARIO", "VISA FRANCES", "CORDOBESA", "MC MERCADO PAGO"];
 const MESES = [
   "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
   "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"
@@ -64,8 +64,8 @@ async function guardarCuenta(e) {
   const nombre = document.getElementById("cuenta-nombre").value.trim().toUpperCase();
   const saldo = parsearMonto(document.getElementById("cuenta-saldo").value);
   const tipo = document.getElementById("cuenta-tipo").value;
-
-  await addDoc(collection(db, "users", uid, "cuentas"), { nombre, saldo, tipo });
+  const logo = document.getElementById("cuenta-logo").value.trim();
+  await addDoc(collection(db, "users", uid, "cuentas"), { nombre, saldo, tipo, logo });
 
   e.target.reset();
 }
@@ -118,7 +118,7 @@ function crearItemHTML(id, item) {
 
   li.innerHTML = `
   <button class="btn-borrar btn-borrar-cuenta">🗑</button>
-  <span class="cuenta-icono">${ICONOS_TIPO[item.tipo] || "💰"}</span>
+  <span class="cuenta-icono">${item.logo ? `<img src="assets/logos/${item.logo}" alt="${item.nombre}">` : (ICONOS_TIPO[item.tipo] || "💰")}</span>
   <span class="item-nombre">${item.nombre}</span>
   <input type="text" inputmode="decimal" class="item-monto-input" value="${formatearMonto(item.saldo)}">
 `;

@@ -1,4 +1,5 @@
 import { auth, db } from "./firebase-config.js";
+import { formatearMonto, obtenerHoyISO, clasificarFecha } from "./utils.js";
 import { onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
@@ -194,9 +195,9 @@ function escucharDatos() {
     });
 
     document.getElementById("total-impserv").textContent =
-      total.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
+      formatearMonto(total);
     document.getElementById("total-lau").textContent =
-      totalLau.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
+      formatearMonto(totalLau);
   });
 }
 
@@ -209,9 +210,9 @@ function crearItemHTML(id, item) {
     <input type="checkbox" ${item.pagado ? "checked" : ""}>
   </label>
   <span class="item-nombre">${item.nombre}</span>
-  <input type="text" inputmode="decimal" class="item-monto-input" value="${item.monto.toLocaleString("es-AR", { style: "currency", currency: "ARS" })}">
+  <input type="text" inputmode="decimal" class="item-monto-input" value="${formatearMonto(item.monto)}">
   <input type="date" class="item-fecha-input" value="${item.vencimiento || ""}">
-  ${item.montoLau ? `<input type="text" inputmode="decimal" class="item-lau-input" placeholder="Lau" value="${item.montoLau.toLocaleString("es-AR", { style: "currency", currency: "ARS" })}">` : ""}
+  ${item.montoLau ? `<input type="text" inputmode="decimal" class="item-lau-input" placeholder="Lau" value="${formatearMonto(item.montoLau)}">` : ""}
   <button class="btn-borrar">🗑</button>
   `;
 
@@ -233,7 +234,7 @@ function crearItemHTML(id, item) {
       const decimal = texto.slice(ultimoSeparador + 1);
       valor = parseFloat(entero + "." + decimal) || 0;
     }
-    e.target.value = valor.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
+    e.target.value = formatearMonto(valor);
     await updateDoc(doc(db, "users", uid, "impuestosServicios", id), { monto: valor });
   });
 
@@ -271,7 +272,7 @@ function crearItemHTML(id, item) {
         const decimal = texto.slice(ultimoSeparador + 1);
         valor = parseFloat(entero + "." + decimal) || 0;
       }
-      e.target.value = valor.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
+      e.target.value = formatearMonto(valor);
       await updateDoc(doc(db, "users", uid, "impuestosServicios", id), { montoLau: valor });
     });
     inputLau.addEventListener("keydown", (e) => {
@@ -283,12 +284,8 @@ function crearItemHTML(id, item) {
   if (inputLauExistente) activarInputLau(inputLauExistente);
 
   if (!item.pagado && item.vencimiento) {
-    const hoyISO = new Date().toISOString().slice(0, 10);
-    if (item.vencimiento < hoyISO) {
-      li.classList.add("fecha-pasada");
-    } else if (item.vencimiento === hoyISO) {
-      li.classList.add("fecha-hoy");
-    }
+    const clase = clasificarFecha(item.vencimiento, obtenerHoyISO());
+    if (clase) li.classList.add(clase);
   }
   return li;
 
