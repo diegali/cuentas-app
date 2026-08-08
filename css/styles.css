@@ -158,6 +158,7 @@ button:hover {
   border: 1px solid var(--accent);
   padding: 6px 12px;
   font-size: 13px;
+  border-radius: 6px 0 0 6px;
 }
 
 .form-item {
@@ -309,10 +310,6 @@ button:hover {
   display: inline-flex;
 }
 
-.btn-rapido {
-  border-radius: 6px 0 0 6px;
-}
-
 .btn-quitar-acceso {
   background: #333;
   color: var(--text-dim);
@@ -409,17 +406,6 @@ button:hover {
 .check-debito input[type="checkbox"] {
   width: auto;
   flex: none;
-}
-
-.periodo-fechas input.fecha-pasada {
-  border-bottom-color: var(--error);
-  color: var(--error);
-}
-
-.periodo-fechas input.fecha-hoy {
-  border-bottom-color: var(--accent);
-  color: var(--accent);
-  font-weight: bold;
 }
 
 input.fecha-pasada {

@@ -20,6 +20,8 @@ let yaIniciado = false;
 let unsubscribeImpuestos = null;
 let unsubscribesPeriodos = [];
 let ultimoImpuestos = [];
+let unsubscribeTarjetasGastos = null;
+
 
 onAuthStateChanged(auth, (user) => {
   if (user && !yaIniciado) {
@@ -40,6 +42,7 @@ function idPeriodoTarjeta(tarjeta) {
 
 function escucharTodo() {
   if (unsubscribeImpuestos) unsubscribeImpuestos();
+  if (unsubscribeTarjetasGastos) unsubscribeTarjetasGastos();
   unsubscribesPeriodos.forEach(u => u());
   unsubscribesPeriodos = [];
 
@@ -59,6 +62,15 @@ function escucharTodo() {
         vencimiento: item.vencimiento || null,
         tipo: "Impuesto/Servicio"
       }));
+    await renderCombinado();
+  });
+
+  const qGastos = query(
+    collection(db, "users", uid, "tarjetas"),
+    where("mes", "==", mesActual),
+    where("anio", "==", anioActual)
+  );
+  unsubscribeTarjetasGastos = onSnapshot(qGastos, async () => {
     await renderCombinado();
   });
 
