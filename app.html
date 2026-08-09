@@ -5,6 +5,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mis Cuentas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 
@@ -99,6 +102,18 @@
     </section>
     <section id="tab-extra" class="tab-content active">
       <div class="mes-extra-header">📅 <span id="mes-extra-label"></span></div>
+      <section class="bloque-disponible-destacado">
+        <h3 class="subtitulo-extra">Disponible diario</h3>
+        <div class="disponible-diario-form">
+          <label for="dia-cobro">Próximo cobro:</label>
+          <input type="date" id="dia-cobro">
+        </div>
+        <div class="disponible-diario-resultado">
+          <p>Días restantes: <span id="dias-restantes">-</span></p>
+          <p>Disponible por día: <span id="disponible-diario">$0</span></p>
+        </div>
+      </section>
+      <hr class="separador-extra">
       <h3 class="subtitulo-extra">Saldos por cuenta</h3>
       <form id="form-cuenta" class="form-item">
         <input type="text" id="cuenta-nombre" placeholder="Nombre" required>
@@ -125,16 +140,6 @@
       <div class="total-mes">
         Total a guardar: <span id="total-ahorro">$0</span>
       </div>
-      <h3 class="subtitulo-extra">Disponible diario</h3>
-      <div class="disponible-diario-form">
-        <label for="dia-cobro">Próximo cobro:</label>
-        <input type="date" id="dia-cobro">
-      </div>
-      <div class="disponible-diario-resultado">
-        <p>Días restantes: <span id="dias-restantes">-</span></p>
-        <p>Disponible por día: <span id="disponible-diario">$0</span></p>
-      </div>
-      <hr class="separador-extra">
       <section class="bloque-vencimientos">
         <h3>Vencimientos del mes</h3>
         <hr class="separador-extra">

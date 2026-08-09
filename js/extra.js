@@ -31,19 +31,42 @@ function iniciarModulo() {
   escucharAhorro();
   escucharDiaCobro();
   const hoy = new Date();
-  const hoyLau = new Date();
+
   onSnapshot(
-    doc(db, "users", uid, "lauPeriodos", `${hoyLau.getMonth()}_${hoyLau.getFullYear()}`),
+    doc(db, "users", uid, "lauPeriodos", `${hoy.getMonth()}_${hoy.getFullYear()}`),
     () => calcularDisponibleDiario()
   );
+
+  onSnapshot(
+    query(
+      collection(db, "users", uid, "impuestosServicios"),
+      where("mes", "==", hoy.getMonth()),
+      where("anio", "==", hoy.getFullYear())
+    ),
+    () => calcularDisponibleDiario()
+  );
+
+  onSnapshot(
+    query(
+      collection(db, "users", uid, "tarjetas"),
+      where("mes", "==", hoy.getMonth()),
+      where("anio", "==", hoy.getFullYear())
+    ),
+    () => calcularDisponibleDiario()
+  );
+
+  TARJETAS.forEach(tarjeta => {
+    const idPeriodo = `${tarjeta.replace(/\s+/g, "_")}_${hoy.getMonth()}_${hoy.getFullYear()}`;
+    onSnapshot(
+      doc(db, "users", uid, "tarjetasPeriodos", idPeriodo),
+      () => calcularDisponibleDiario()
+    );
+  });
+
   document.getElementById("mes-extra-label").textContent = `${MESES[hoy.getMonth()]} ${hoy.getFullYear()}`;
   document.getElementById("form-cuenta").addEventListener("submit", guardarCuenta);
   document.getElementById("form-ahorro").addEventListener("submit", guardarAhorro);
   document.getElementById("dia-cobro").addEventListener("change", guardarDiaCobro);
-
-  onSnapshot(doc(db, "users", uid, "lauPeriodos", `${new Date().getMonth()}_${new Date().getFullYear()}`), () => {
-    calcularDisponibleDiario();
-  });
 }
 
 function parsearMonto(texto) {

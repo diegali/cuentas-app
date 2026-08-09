@@ -14,7 +14,7 @@
 }
 
 body {
-  font-family: 'Segoe UI', sans-serif;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
@@ -581,6 +581,22 @@ input.fecha-hoy {
   font-weight: bold;
   color: var(--accent);
   margin-bottom: 1rem;
+}
+
+.bloque-disponible-destacado {
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 8px;
+}
+
+.disponible-diario-resultado p:last-child {
+  font-size: 20px;
+}
+
+.disponible-diario-resultado p:last-child span {
+  font-size: 24px;
 }
 
 .separador-extra {
