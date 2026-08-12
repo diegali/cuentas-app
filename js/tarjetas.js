@@ -24,6 +24,7 @@ let ultimoItemsSnapshot = [];
 let comisionActual = 0;
 let ivaActual = 0;
 let selloManual = null;
+let periodoPagadoActual = false;
 
 onAuthStateChanged(auth, (user) => {
   if (user && !yaIniciado) {
@@ -47,6 +48,14 @@ function escucharFechasPeriodo() {
     document.getElementById("tj-pagado").checked = data.pagado || false;
     document.querySelector(".periodo-fechas").classList.toggle("periodo-pagado", data.pagado || false);
     document.getElementById("tj-pagado-texto").textContent = data.pagado ? "PAGADO" : "";
+
+    periodoPagadoActual = data.pagado || false;
+    const formTarjeta = document.getElementById("form-tarjeta");
+    formTarjeta.classList.toggle("form-bloqueado", periodoPagadoActual);
+    formTarjeta.querySelectorAll("input, button").forEach(el => {
+      if (el.id !== "tj-debito-automatico") el.disabled = periodoPagadoActual;
+    });
+    document.getElementById("lista-tarjeta").classList.toggle("form-bloqueado", periodoPagadoActual);
 
     comisionActual = data.comision || 0;
     ivaActual = data.iva || 0;
@@ -124,6 +133,7 @@ function actualizarLabelMes() {
 
 async function guardarGasto(e) {
   e.preventDefault();
+  if (periodoPagadoActual) return;
   const descripcion = document.getElementById("tj-descripcion").value.trim().toUpperCase();
   const monto = parseFloat(document.getElementById("tj-monto").value);
   const cuotaActual = parseInt(document.getElementById("tj-cuota-actual").value) || null;

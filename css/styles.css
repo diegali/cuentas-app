@@ -704,3 +704,8 @@ input.fecha-hoy {
 .diferencia-negativa {
   color: var(--error);
 }
+
+.form-bloqueado {
+  opacity: 0.4;
+  pointer-events: none;
+}
