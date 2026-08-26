@@ -66,7 +66,34 @@ Sin selector de mes propio en ninguno de los sub-módulos (se sacó a propósito
 
 **Vencimientos del mes** (`vencimientos.js`): combina ítems no pagados de impuestosServicios (monto BRUTO, sin restar Lau) + vencimientos de tarjetas no pagadas (monto bruto + sello/comisión/IVA si aplica), ordenado por fecha. Mismo resaltado rojo/celeste que impserv. Tiempo real completo (ver bug resuelto arriba: ahora también escucha altas en `tarjetas`). Exporta `calcularTotalVencimientosMes(uid, mes, anio)` — versión sin DOM para reusar en Disponible diario, debe usar monto BRUTO (`total += item.monto`), nunca restar montoLau ahí.
 
-**Debe Lau** (`deudalau.js`): junta ítems con `montoLau > 0` de impuestosServicios + tarjetas. Un solo checkbox "pagado" por mes (no por ítem), en `users/{uid}/lauPeriodos/{mes}_{anio}`. Al pagar, la lista se atenúa y tacha. Exporta `calcularTotalLauPendiente(uid, mes, anio)`.
+**Debe Lau** (`deudalau.js`): junta ítems con `montoLau ≠ 0` (positivos = te
+debe Lau; negativos = devoluciones/ajustes a favor de Lau, ambos se
+muestran y se suman) de impuestosServicios + tarjetas. Un solo checkbox
+"pagado" por mes (no por ítem), en `users/{uid}/lauPeriodos/{mes}_{anio}`.
+Al pagar, la lista se atenúa y tacha. Exporta
+`calcularTotalLauPendiente(uid, mes, anio)`. Ítems de tarjetas muestran
+la cuota entre paréntesis cuando corresponde (`cuotaActual/cuotaTotal`),
+igual que en Tarjetas.
+
+**Botón "Ver mes que viene" (Debe Lau)**: permite espiar los ítems de
+Lau del mes siguiente (útil para cargar una devolución/gasto que ya
+corresponde al próximo período antes de que llegue el mes calendario),
+SIN cambiar el concepto de "mes actual" en el resto de la app (Panel
+sigue atado al mes calendario real en todos los demás sub-módulos;
+cambiar eso a "período entre cobro y cobro" se evaluó y se descartó por
+ahora por ser un cambio grande y riesgoso).
+- Variable módulo `viendoMesSiguiente` (boolean, arranca en `false`)
+- `mesYAnioAMostrar()`: devuelve `{mes, anio}` de hoy, o del mes siguiente
+  si `viendoMesSiguiente` es `true`
+- `escucharTodo()` e `idPeriodoLau()` usan `mesYAnioAMostrar()` en vez de
+  fechas fijas de hoy — así todo el módulo (listado Y el checkbox
+  "pagado", que son independientes por período) responde al toggle
+- Botón `#ld-ver-siguiente`, togglea el texto ("Ver mes que viene ▶" /
+  "◀ Ver mes actual") y vuelve a llamar `escucharTodo()` +
+  `escucharPeriodoLau()` al click
+- Este patrón (mes "espiado" aparte del mes real de la app) queda
+  disponible como referencia si en el futuro hace falta algo similar en
+  Vencimientos
 
 ## Módulo "Total" (tab-total)
 `js/total.js`. Grilla de 12 tarjetas (4x3, año fijo = actual, sin selector de año). Cada tarjeta: Ingreso (editable, guardado en `users/{uid}/ingresos/{mes}_{anio}`), Tarjetas, Imp./Servicios, Diferencia (verde/rojo). Trae todo el año de una sola vez con onSnapshot (`where anio ==`, sin filtrar mes) y agrupa en arrays de 12 posiciones. IMPORTANTE: acá los montos son NETOS (restando montoLau), a propósito distinto de Vencimientos que usa bruto. Mes actual resaltado con borde dorado.
@@ -86,6 +113,28 @@ Solo el dueño lee/escribe sus propios datos, patrón `users/{userId}/{document=
 - IDs duplicados en el HTML rompen en silencio (el segundo elemento queda sin listener)
 - Ante "no se actualiza sin F5" verificar primero si es falta de listener (onSnapshot) o versión vieja de JS cacheada en el navegador (probar Ctrl+Shift+R antes de asumir bug de lógica)
 
+## Cambios de la sesión de hoy (después del refactor de utils.js)
+
+**Tipografía:** se cambió de `'Segoe UI'` a `'Inter'` (Google Fonts, pesos 400-800), cargada en `index.html` y `app.html`. `font-family` en `css/styles.css` ahora es `'Inter', 'Segoe UI', sans-serif`.
+
+**Disponible diario destacado:** el bloque se movió al principio del tab Panel/Extra (antes de "Saldos por cuenta"), envuelto en `<section class="bloque-disponible-destacado">` con fondo dorado tenue, borde `--accent` y el número de "Disponible por día" agrandado (24px). Es lo que el usuario más mira a diario.
+
+**Bug resuelto — Disponible diario no se actualizaba en vivo:** en `extra.js`, `calcularDisponibleDiario()` solo se disparaba con cambios en cuentas/ahorro/fecha de cobro/Debe Lau, pero no cuando cambiaba `totalVencimientos` (que depende de `impuestosServicios` y `tarjetas`/`tarjetasPeriodos`). Se agregaron listeners `onSnapshot` sobre `impuestosServicios` (mes/año), sobre `tarjetas` (mes/año) y sobre cada doc de `tarjetasPeriodos` (uno por tarjeta), todos disparando `calcularDisponibleDiario()`. De paso se sacó un listener duplicado de `lauPeriodos` que había quedado pegado dos veces en `iniciarModulo()`.
+**Patrón para recordar (ya estaba anotado, se repitió):** cualquier total/cálculo derivado necesita listener propio sobre TODAS las colecciones/docs de los que depende, no solo lectura puntual.
+
+**Tarjetas — bloqueo de período pagado:** cuando se tilda "pagado" en el período de una tarjeta, ahora se bloquea tanto el alta de gastos como la edición/borrado de ítems ya cargados:
+- Variable módulo `periodoPagadoActual` en `tarjetas.js`, seteada en el listener de `escucharFechasPeriodo()`.
+- Guardia en `guardarGasto()`: `if (periodoPagadoActual) return;` al principio.
+- Se togglea clase `.form-bloqueado` (opacity 0.4 + `pointer-events: none`) sobre `#form-tarjeta` y sobre `#lista-tarjeta`, y se deshabilitan (`disabled`) todos los inputs/botones del form salvo el checkbox de débito automático.
+
+**Módulo nuevo: Metas de ahorro** — separado a propósito de "Ahorro a guardar" (que es plata ya comprometida para gastos del próximo período, no ahorro real). Pensado para metas compartidas con Lau (ej. vacaciones), en pesos o dólares.
+- Archivo nuevo `js/metas.js`, mismo patrón standalone que `deudalau.js`/`vencimientos.js` (su propio `onAuthStateChanged` + `iniciarModulo()`)
+- Firestore: `users/{uid}/metasAhorro` → `{nombre, moneda: "ARS"|"USD", montoPropio, montoLau}`
+- Cada ítem muestra aporte propio y de Lau por separado (editables), y el total combinado de la fila
+- Totales separados por moneda al pie ("Total en pesos" / "Total en dólares"), sin mezclarlos entre sí ni sumarlos al cálculo de Disponible diario (ese sigue usando solo "Ahorro a guardar")
+- Se sumaron a `utils.js`: `formatearUSD(valor)` (formato `US$ 1,234.56`, para no confundir con el `$` de pesos) y `parsearMonto(texto)` (antes solo vivía duplicado suelto en varios módulos; este archivo nuevo ya arrancó importándolo de utils en vez de sumar una copia más)
+- Sección nueva en `app.html` dentro de tab-extra, debajo de "Ahorro a guardar"; script `js/metas.js` agregado junto a los demás `<script type="module">`
+
 ## Preferencias de trabajo del usuario
 - Modo "principiante": indicar directamente qué cambiar, mínima explicación, un cambio a la vez, paso a paso
 - Fragmento a cambiar, no el archivo completo (salvo archivo nuevo)
@@ -94,5 +143,6 @@ Solo el dueño lee/escribe sus propios datos, patrón `users/{userId}/{document=
 
 ## Próximos pasos posibles
 - Terminar limpieza CSS: variables `--input-bg` y `--hoy` (pospuesto a la próxima sesión de estética)
+- Revisar si `parsearMonto` conviene unificarse en `utils.js` en el resto de los módulos (hoy solo `metas.js` la importa de ahí; los demás siguen con su copia local) — mismo criterio que se usó con `formatearMonto`
 - Cambios estéticos generales (pendiente, próxima etapa)
 - Selector de año en Total (hoy fijo al año actual) — mejora futura, no urgente

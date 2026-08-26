@@ -21,6 +21,7 @@ let unsubscribeTarj = null;
 let ultimoImp = [];
 let ultimoTarj = [];
 let periodoPagadoActual = false;
+let viendoMesSiguiente = false;
 
 onAuthStateChanged(auth, (user) => {
     if (user && !yaIniciado) {
@@ -36,31 +37,49 @@ function iniciarModulo() {
     document.getElementById("ld-pagado").addEventListener("change", async (e) => {
         await setDoc(doc(db, "users", uid, "lauPeriodos", idPeriodoLau()), { pagado: e.target.checked }, { merge: true });
     });
+    document.getElementById("ld-ver-siguiente").addEventListener("click", () => {
+        viendoMesSiguiente = !viendoMesSiguiente;
+        document.getElementById("ld-ver-siguiente").textContent = viendoMesSiguiente ? "◀ Ver mes actual" : "Ver mes que viene ▶";
+        escucharTodo();
+        escucharPeriodoLau();
+    });
+}
+
+function mesYAnioAMostrar() {
+    const hoy = new Date();
+    let mes = hoy.getMonth();
+    let anio = hoy.getFullYear();
+    if (viendoMesSiguiente) {
+        mes++;
+        if (mes > 11) { mes = 0; anio++; }
+    }
+    return { mes, anio };
 }
 
 function escucharTodo() {
     if (unsubscribeImp) unsubscribeImp();
     if (unsubscribeTarj) unsubscribeTarj();
+    const { mes, anio } = mesYAnioAMostrar();
 
     const qImp = query(
         collection(db, "users", uid, "impuestosServicios"),
-        where("mes", "==", mesActual), where("anio", "==", anioActual)
+        where("mes", "==", mes), where("anio", "==", anio)
     );
     unsubscribeImp = onSnapshot(qImp, (snapshot) => {
         ultimoImp = snapshot.docs
             .map(d => ({ id: d.id, coleccion: "impuestosServicios", ...d.data() }))
-            .filter(item => item.montoLau > 0);
+            .filter(item => (item.montoLau || 0) !== 0);
         renderCombinado();
     });
 
     const qTarj = query(
         collection(db, "users", uid, "tarjetas"),
-        where("mes", "==", mesActual), where("anio", "==", anioActual)
+        where("mes", "==", mes), where("anio", "==", anio)
     );
     unsubscribeTarj = onSnapshot(qTarj, (snapshot) => {
         ultimoTarj = snapshot.docs
             .map(d => ({ id: d.id, coleccion: "tarjetas", ...d.data() }))
-            .filter(item => item.montoLau > 0);
+            .filter(item => (item.montoLau || 0) !== 0);
         renderCombinado();
     });
 }
@@ -73,10 +92,13 @@ function renderCombinado() {
 
     combinado.forEach(item => {
         total += item.montoLau;
+        const cuotaTexto = (item.cuotaActual && item.cuotaTotal)
+            ? ` (${item.cuotaActual}/${item.cuotaTotal})`
+            : "";
         const li = document.createElement("li");
         li.className = "item-fila";
         li.innerHTML = `
-      <span class="item-nombre">${item.nombre || item.descripcion}</span>
+      <span class="item-nombre">${item.nombre || item.descripcion}${cuotaTexto}</span>
       <span class="item-monto">${formatearMonto(item.montoLau)}</span>
     `;
         lista.appendChild(li);
@@ -111,7 +133,8 @@ export async function calcularTotalLauPendiente(uidParam, mes, anio) {
 }
 
 function idPeriodoLau() {
-    return `${mesActual}_${anioActual}`;
+    const { mes, anio } = mesYAnioAMostrar();
+    return `${mes}_${anio}`;
 }
 
 function escucharPeriodoLau() {
@@ -123,3 +146,4 @@ function escucharPeriodoLau() {
         renderCombinado();
     });
 }
+

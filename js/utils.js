@@ -18,3 +18,16 @@ export function clasificarFecha(fechaISO, hoyISO) {
 export function armarIdPeriodo(tarjeta, mes, anio) {
     return `${tarjeta.replace(/\s+/g, "_")}_${mes}_${anio}`;
 }
+
+export function formatearUSD(valor) {
+    return "US$ " + valor.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+export function parsearMonto(texto) {
+    texto = texto.replace(/[^0-9.,]/g, "");
+    const ultimoSeparador = Math.max(texto.lastIndexOf(","), texto.lastIndexOf("."));
+    if (ultimoSeparador === -1) return parseFloat(texto) || 0;
+    const entero = texto.slice(0, ultimoSeparador).replace(/[.,]/g, "");
+    const decimal = texto.slice(ultimoSeparador + 1);
+    return parseFloat(entero + "." + decimal) || 0;
+}

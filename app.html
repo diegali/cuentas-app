@@ -130,7 +130,8 @@
       <div class="total-mes">
         Total disponible: <span id="total-cuentas">$0</span>
       </div>
-      <h3 class="subtitulo-extra">Ahorro a guardar</h3>
+      <hr class="separador-extra">
+      <h3 class="subtitulo-extra">Guardar</h3>
       <form id="form-ahorro" class="form-item">
         <input type="text" id="ahorro-nombre" placeholder="Nombre / motivo" required>
         <input type="text" inputmode="decimal" id="ahorro-monto" placeholder="Monto" required>
@@ -140,9 +141,26 @@
       <div class="total-mes">
         Total a guardar: <span id="total-ahorro">$0</span>
       </div>
+      <hr class="separador-extra">
+      <h3 class="subtitulo-extra">Metas de ahorro</h3>
+      <form id="form-meta" class="form-item">
+        <input type="text" id="meta-nombre" placeholder="Nombre / motivo" required>
+        <select id="meta-moneda">
+          <option value="ARS">Pesos</option>
+          <option value="USD">Dólares</option>
+        </select>
+        <input type="text" inputmode="decimal" id="meta-propio" placeholder="Tu aporte" required>
+        <input type="text" inputmode="decimal" id="meta-lau" placeholder="Aporte Lau" required>
+        <button type="submit">Agregar</button>
+      </form>
+      <ul id="lista-metas" class="lista-items"></ul>
+      <div class="total-mes">
+        Total en pesos: <span id="total-metas-ars">$0</span><br>
+        Total en dólares: <span id="total-metas-usd">US$ 0</span>
+      </div>
+      <hr class="separador-extra">
       <section class="bloque-vencimientos">
-        <h3>Vencimientos del mes</h3>
-        <hr class="separador-extra">
+        <h3>Vencimientos del mes</h3><br>
         <ul id="lista-vencimientos" class="lista-items"></ul>
         <div class="total-mes">
           Total vencimientos: <span id="total-vencimientos">$0</span>
@@ -150,15 +168,17 @@
       </section>
       <section class="bloque-lau">
         <div class="titulo-con-check">
-          <h3>Debe Lau <label class="check-periodo-pagado"><input type="checkbox" id="ld-pagado"><span
-                id="ld-pagado-texto">Pagado</span></label></h3>
-        </div>
-        <hr class="separador-extra">
-        <ul id="lista-lau"></ul>
-        <div class="total-mes">
-          Pendiente: <span id="total-lau-pendiente">$0,00</span>
-        </div>
-        <hr class="separador-extra">
+          <div class="titulo-con-check">
+            <h3>Debe Lau <label class="check-periodo-pagado"><input type="checkbox" id="ld-pagado"><span
+                  id="ld-pagado-texto">Pagado</span></label></h3><br>
+            <button type="button" id="ld-ver-siguiente" class="btn-ver-siguiente">Ver mes que viene ▶</button>
+          </div>
+          <hr class="separador-extra">
+          <ul id="lista-lau"></ul>
+          <div class="total-mes">
+            Pendiente: <span id="total-lau-pendiente">$0,00</span>
+          </div>
+          <hr class="separador-extra">
       </section>
     </section>
     <script type="module" src="js/deudalau.js"></script>
@@ -170,6 +190,7 @@
   <script type="module" src="js/tarjetas.js"></script>
   <script type="module" src="js/extra.js"></script>
   <script type="module" src="js/vencimientos.js"></script>
+  <script type="module" src="js/metas.js"></script>
 </body>
 
 </html>
