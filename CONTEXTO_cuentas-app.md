@@ -62,67 +62,11 @@ Sin selector de mes propio en ninguno de los sub-módulos (se sacó a propósito
 
 **Ahorro a guardar** (`extra.js`): lista simple nombre+monto editable. Firestore: `users/{uid}/ahorros` → `{nombre, monto}`. Total en `totalAhorroActual`.
 
-**Disponible diario** (`extra.js`): input fecha próximo cobro
-(`users/{uid}/config/diaCobro`). Fórmula: `(totalCuentasActual -
-totalAhorroActual - totalVencimientos + totalLau) / diasRestantes`.
-
-**CAMBIO IMPORTANTE (sesión de hoy) — período real vs. mes calendario:**
-el usuario cobra el sueldo un día de la primera semana del mes, no el
-día 1. Antes del cobro, los vencimientos/deudas que "cuentan" para el
-disponible siguen siendo los del período anterior (aunque el calendario
-ya haya rodado al mes nuevo), no los del mes calendario actual. Por eso
-`totalVencimientos` y `totalLau` YA NO se calculan por mes calendario:
-ahora ambos filtran por **fecha real de vencimiento ≤ fecha de "Próximo
-cobro"** cargada por el usuario, recorriendo los meses que hagan falta
-(desde hoy hasta el mes de la fecha de cobro, máx. 3 meses de margen).
-- `totalVencimientos` viene de `calcularTotalVencimientosHasta(uid,
-  fechaCobro)` (vencimientos.js) — REEMPLAZÓ a `calcularTotalVencimientosMes`
-  (la vieja función por mes calendario, ya no se usa desde extra.js pero
-  se dejó en el archivo por si sirve de referencia)
-- `totalLau` viene de `calcularTotalLauPendienteHasta(uid, fechaCobro)`
-  (deudalau.js) — REEMPLAZÓ a `calcularTotalLauPendiente` (misma
-  situación, vieja función por mes calendario ya no usada desde extra.js)
-- Ambas funciones nuevas: arman un array de `{mes, anio}` iterando desde
-  hoy hasta el mes de `fechaCobro` (por si el cobro cae en el mes
-  siguiente), y para cada mes chequean la fecha real (`vencimiento` en
-  impuestosServicios, `fechaVencimiento` en tarjetasPeriodos) contra
-  `fechaCobro`, no contra el mes calendario del documento
-- `calcularTotalLauPendienteHasta` importa `TARJETAS` de utils.js (lo
-  necesita para iterar tarjetasPeriodos, antes esa función no la
-  necesitaba porque solo miraba por mes calendario)
-- Se recalcula ante cambios en cuentas, ahorro, fecha de cobro, o el
-  checkbox "Pagado" de Debe Lau (sin cambios en esta parte)
+**Disponible diario** (`extra.js`): input fecha próximo cobro (`users/{uid}/config/diaCobro`). Fórmula: `(totalCuentasActual - totalAhorroActual - totalVencimientos + totalLau) / diasRestantes`. `totalVencimientos` viene de `calcularTotalVencimientosMes()` (vencimientos.js), `totalLau` de `calcularTotalLauPendiente()` (deudalau.js). Se recalcula solo ante cambios en cuentas, ahorro, fecha de cobro, o el checkbox "Pagado" de Debe Lau.
 
 **Vencimientos del mes** (`vencimientos.js`): combina ítems no pagados de impuestosServicios (monto BRUTO, sin restar Lau) + vencimientos de tarjetas no pagadas (monto bruto + sello/comisión/IVA si aplica), ordenado por fecha. Mismo resaltado rojo/celeste que impserv. Tiempo real completo (ver bug resuelto arriba: ahora también escucha altas en `tarjetas`). Exporta `calcularTotalVencimientosMes(uid, mes, anio)` — versión sin DOM para reusar en Disponible diario, debe usar monto BRUTO (`total += item.monto`), nunca restar montoLau ahí.
 
-**Debe Lau** (`deudalau.js`): junta ítems con `montoLau ≠ 0` (positivos = te
-debe Lau; negativos = devoluciones/ajustes a favor de Lau, ambos se
-muestran y se suman) de impuestosServicios + tarjetas. Un solo checkbox
-"pagado" por mes (no por ítem), en `users/{uid}/lauPeriodos/{mes}_{anio}`.
-Al pagar, la lista se atenúa y tacha. Exporta
-`calcularTotalLauPendiente(uid, mes, anio)`. Ítems de tarjetas muestran
-la cuota entre paréntesis cuando corresponde (`cuotaActual/cuotaTotal`),
-igual que en Tarjetas.
-
-**Botón "Ver mes que viene" (Debe Lau)**: permite espiar los ítems de
-Lau del mes siguiente (útil para cargar una devolución/gasto que ya
-corresponde al próximo período antes de que llegue el mes calendario),
-SIN cambiar el concepto de "mes actual" en el resto de la app (Panel
-sigue atado al mes calendario real en todos los demás sub-módulos;
-cambiar eso a "período entre cobro y cobro" se evaluó y se descartó por
-ahora por ser un cambio grande y riesgoso).
-- Variable módulo `viendoMesSiguiente` (boolean, arranca en `false`)
-- `mesYAnioAMostrar()`: devuelve `{mes, anio}` de hoy, o del mes siguiente
-  si `viendoMesSiguiente` es `true`
-- `escucharTodo()` e `idPeriodoLau()` usan `mesYAnioAMostrar()` en vez de
-  fechas fijas de hoy — así todo el módulo (listado Y el checkbox
-  "pagado", que son independientes por período) responde al toggle
-- Botón `#ld-ver-siguiente`, togglea el texto ("Ver mes que viene ▶" /
-  "◀ Ver mes actual") y vuelve a llamar `escucharTodo()` +
-  `escucharPeriodoLau()` al click
-- Este patrón (mes "espiado" aparte del mes real de la app) queda
-  disponible como referencia si en el futuro hace falta algo similar en
-  Vencimientos
+**Debe Lau** (`deudalau.js`): junta ítems con `montoLau > 0` de impuestosServicios + tarjetas. Un solo checkbox "pagado" por mes (no por ítem), en `users/{uid}/lauPeriodos/{mes}_{anio}`. Al pagar, la lista se atenúa y tacha. Exporta `calcularTotalLauPendiente(uid, mes, anio)`.
 
 ## Módulo "Total" (tab-total)
 `js/total.js`. Grilla de 12 tarjetas (4x3, año fijo = actual, sin selector de año). Cada tarjeta: Ingreso (editable, guardado en `users/{uid}/ingresos/{mes}_{anio}`), Tarjetas, Imp./Servicios, Diferencia (verde/rojo). Trae todo el año de una sola vez con onSnapshot (`where anio ==`, sin filtrar mes) y agrupa en arrays de 12 posiciones. IMPORTANTE: acá los montos son NETOS (restando montoLau), a propósito distinto de Vencimientos que usa bruto. Mes actual resaltado con borde dorado.
@@ -141,29 +85,6 @@ Solo el dueño lee/escribe sus propios datos, patrón `users/{userId}/{document=
 - `${variable}` escrito directo en un `.html` es texto literal, no se evalúa — solución: `<span>` vacío + `textContent` desde JS
 - IDs duplicados en el HTML rompen en silencio (el segundo elemento queda sin listener)
 - Ante "no se actualiza sin F5" verificar primero si es falta de listener (onSnapshot) o versión vieja de JS cacheada en el navegador (probar Ctrl+Shift+R antes de asumir bug de lógica)
-- Nuevo índice compuesto creado hoy en Firestore: colección
-  `impuestosServicios`, campos `pagado` + `vencimiento` (para las queries
-  de `calcularTotalVencimientosHasta`/`calcularTotalLauPendienteHasta`
-  que filtran por fecha real, no por mes/año). Si Firebase pide crear un
-  índice nuevo, usar SIEMPRE el link exacto de la consola del navegador
-  (F12), no la pantalla general de "Índices" de Firebase, para no crear
-  un índice con campos equivocados por error
-- Cuando una función se reemplaza por una versión nueva con otro nombre
-  (ej. `calcularTotalVencimientosMes` → `calcularTotalVencimientosHasta`),
-  revisar que el import viejo se haya cambiado en TODOS los archivos que
-  la usan, no solo agregar el nuevo — quedan imports/variables sin uso
-  marcados en gris por el editor, señal para limpiarlos (pasó con
-  `updateDoc`, `mesActual`, `anioActual` en deudalau.js, ya sin uso
-  después de este cambio)
-- **Concepto de fondo (puede volver a aparecer en otros módulos):** el
-  usuario piensa en "período hasta el próximo cobro de sueldo", no en
-  mes calendario. La mayoría de los módulos SÍ usan mes calendario
-  (Tarjetas, Imp. y Servicios, Debe Lau al navegar, Total) porque ahí
-  tiene sentido para cargar/organizar datos. Pero cualquier CÁLCULO que
-  alimente "cuánta plata tengo disponible ahora" debe filtrar por FECHA
-  REAL (`vencimiento`/`fechaVencimiento`) comparada contra la fecha de
-  cobro, no por el campo `mes`/`anio` del documento — si en el futuro se
-  agrega otro cálculo de este tipo, aplicar el mismo criterio de entrada
 
 ## Cambios de la sesión de hoy (después del refactor de utils.js)
 
@@ -187,6 +108,26 @@ Solo el dueño lee/escribe sus propios datos, patrón `users/{userId}/{document=
 - Se sumaron a `utils.js`: `formatearUSD(valor)` (formato `US$ 1,234.56`, para no confundir con el `$` de pesos) y `parsearMonto(texto)` (antes solo vivía duplicado suelto en varios módulos; este archivo nuevo ya arrancó importándolo de utils en vez de sumar una copia más)
 - Sección nueva en `app.html` dentro de tab-extra, debajo de "Ahorro a guardar"; script `js/metas.js` agregado junto a los demás `<script type="module">`
 
+## Cambios de la sesión más reciente
+
+**Select con estilo oscuro:** el `<select>` de tipo de cuenta (Banco/Billetera/Efectivo) tenía el estilo blanco por defecto del navegador porque la regla general `input {...}` no incluía `select`. Se unificó `input, select { ... }` y se agregó una flechita SVG dorada custom (`appearance: none` + `background-image` inline) más `select option { background: #23262e; color: var(--text); }` (necesario aparte porque el menú desplegable no hereda `background` del select en todos los navegadores).
+
+**Exportar "Debe Lau" — pensado varias vueltas, terminó en imagen (no texto ni PDF):**
+- Botón nuevo `#ld-enviar-whatsapp` (clase `btn-ver-siguiente`, al lado de `#ld-ver-siguiente`) en `deudalau.js`
+- Se arma un bloque HTML oculto fuera de pantalla en `app.html` (`#captura-lau`, `position: fixed; left: -9999px`) con el diseño del "cuadrito" (título, mes, lista de ítems, total), se completa dinámicamente con `textContent`/`innerHTML` y se convierte en imagen con **html2canvas** (CDN: `cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js`, cargado como `<script>` normal, no módulo)
+- Comportamiento según dispositivo (detectado por `navigator.userAgent` con regex `/Mobi|Android|iPhone|iPad/i`):
+  - **Mobile:** `navigator.share({ files: [...] })` → abre el selector nativo de compartir del teléfono, WhatsApp aparece ahí directo
+  - **PC:** `navigator.share` con archivos casi nunca lista WhatsApp Desktop (probado, no aparece) → en cambio se copia la imagen al portapapeles con `navigator.clipboard.write([new ClipboardItem(...)])`, así se pega con Ctrl+V directo en WhatsApp Web
+  - Fallback si no hay `clipboard`/`ClipboardItem`: descarga el PNG y avisa que se mande a mano
+- Variable módulo nueva `ultimoCombinado` en `deudalau.js` (guarda el último array renderizado por `renderCombinado()`) para poder reusarlo tanto en el render de pantalla como al armar la imagen, sin duplicar la lógica de armado de ítems
+- **Orden alfabético:** `renderCombinado()` ahora ordena `[...ultimoImp, ...ultimoTarj]` con `.sort()` + `localeCompare(..., "es")` antes de asignarlo a `ultimoCombinado` — afecta tanto la lista en pantalla como la imagen exportada (comparten el mismo array ya ordenado)
+
+**Modal de aviso reusable (reemplaza `alert()`):**
+- HTML: `#modal-aviso` (overlay fijo, oculto por defecto) + `#modal-aviso-texto` + botón `#modal-aviso-cerrar`, agregado en `app.html`
+- CSS: `.modal-overlay` / `.modal-caja`, tema oscuro/dorado consistente con el resto de la app
+- JS: `mostrarAviso(texto)` exportada desde **`utils.js`** (no desde deudalau.js — queda disponible para cualquier módulo que la importe a futuro). El listener del botón cerrar también vive en utils.js, a nivel módulo (se ejecuta una sola vez porque los ES modules son singletons por URL, sin importar cuántos archivos hagan `import` de utils.js)
+- Usado hoy solo en `deudalau.js` (los dos avisos de `enviarWhatsapp()`); el resto de la app sigue usando `alert()`/`confirm()` nativos sin cambios
+
 ## Preferencias de trabajo del usuario
 - Modo "principiante": indicar directamente qué cambiar, mínima explicación, un cambio a la vez, paso a paso
 - Fragmento a cambiar, no el archivo completo (salvo archivo nuevo)
@@ -196,5 +137,7 @@ Solo el dueño lee/escribe sus propios datos, patrón `users/{userId}/{document=
 ## Próximos pasos posibles
 - Terminar limpieza CSS: variables `--input-bg` y `--hoy` (pospuesto a la próxima sesión de estética)
 - Revisar si `parsearMonto` conviene unificarse en `utils.js` en el resto de los módulos (hoy solo `metas.js` la importa de ahí; los demás siguen con su copia local) — mismo criterio que se usó con `formatearMonto`
+- Evaluar si conviene reemplazar más `alert()`/`confirm()` nativos por `mostrarAviso()` (modal) en otros módulos, ahora que ya existe el patrón
+- Evaluar si "Metas de ahorro" también necesita orden alfabético u otro criterio de orden (no se tocó en esta sesión)
 - Cambios estéticos generales (pendiente, próxima etapa)
 - Selector de año en Total (hoy fijo al año actual) — mejora futura, no urgente

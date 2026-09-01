@@ -172,6 +172,7 @@
             <h3>Debe Lau <label class="check-periodo-pagado"><input type="checkbox" id="ld-pagado"><span
                   id="ld-pagado-texto">Pagado</span></label></h3><br>
             <button type="button" id="ld-ver-siguiente" class="btn-ver-siguiente">Ver mes que viene ▶</button>
+            <button type="button" id="ld-enviar-whatsapp" class="btn-ver-siguiente">📤 Enviar por WhatsApp</button>
           </div>
           <hr class="separador-extra">
           <ul id="lista-lau"></ul>
@@ -181,9 +182,28 @@
           <hr class="separador-extra">
       </section>
     </section>
-    <script type="module" src="js/deudalau.js"></script>
+
   </main>
 
+  <div id="captura-lau"
+    style="position: fixed; left: -9999px; top: 0; width: 360px; background: #14161c; padding: 24px; font-family: 'Inter', sans-serif; color: #eee; border: 2px solid #d4af37; border-radius: 16px;">
+    <h2 style="color:#d4af37; margin:0 0 4px; font-size:20px;">💰 Debe Lau</h2>
+    <p id="captura-lau-mes" style="color:#999; margin:0 0 16px; font-size:14px;"></p>
+    <div id="captura-lau-items"></div>
+    <hr style="border:none; border-top:1px solid #333; margin:16px 0;">
+    <p style="font-size:18px; font-weight:bold; margin:0; display:flex; justify-content:space-between;">
+      <span>Total</span> <span id="captura-lau-total" style="color:#d4af37;"></span>
+    </p>
+  </div>
+  <div id="modal-aviso" class="modal-overlay" style="display:none;">
+    <div class="modal-caja">
+      <p id="modal-aviso-texto"></p>
+      <button id="modal-aviso-cerrar" type="button">Entendido</button>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script type="module" src="js/deudalau.js"></script>
   <script type="module" src="js/firebase-config.js"></script>
   <script type="module" src="js/app.js"></script>
   <script type="module" src="js/impserv.js"></script>
@@ -191,6 +211,7 @@
   <script type="module" src="js/extra.js"></script>
   <script type="module" src="js/vencimientos.js"></script>
   <script type="module" src="js/metas.js"></script>
+
 </body>
 
 </html>

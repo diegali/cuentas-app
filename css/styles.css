@@ -754,3 +754,28 @@ input.fecha-hoy {
   min-width: 90px;
   text-align: right;
 }
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal-caja {
+  background: var(--card);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 320px;
+  text-align: center;
+}
+
+.modal-caja p {
+  margin: 0 0 16px;
+  color: var(--text);
+  font-size: 15px;
+}

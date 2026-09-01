@@ -1,5 +1,5 @@
 import { auth, db } from "./firebase-config.js";
-import { formatearMonto } from "./utils.js";
+import { formatearMonto, mostrarAviso } from "./utils.js";
 import { TARJETAS } from "./utils.js";
 import { onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -16,6 +16,7 @@ let ultimoImp = [];
 let ultimoTarj = [];
 let periodoPagadoActual = false;
 let viendoMesSiguiente = false;
+let ultimoCombinado = [];
 
 onAuthStateChanged(auth, (user) => {
     if (user && !yaIniciado) {
@@ -31,6 +32,7 @@ function iniciarModulo() {
     document.getElementById("ld-pagado").addEventListener("change", async (e) => {
         await setDoc(doc(db, "users", uid, "lauPeriodos", idPeriodoLau()), { pagado: e.target.checked }, { merge: true });
     });
+    document.getElementById("ld-enviar-whatsapp").addEventListener("click", enviarWhatsapp);
     document.getElementById("ld-ver-siguiente").addEventListener("click", () => {
         viendoMesSiguiente = !viendoMesSiguiente;
         document.getElementById("ld-ver-siguiente").textContent = viendoMesSiguiente ? "◀ Ver mes actual" : "Ver mes que viene ▶";
@@ -79,7 +81,12 @@ function escucharTodo() {
 }
 
 function renderCombinado() {
-    const combinado = [...ultimoImp, ...ultimoTarj];
+    const combinado = [...ultimoImp, ...ultimoTarj].sort((a, b) => {
+        const nombreA = (a.nombre || a.descripcion || "").toUpperCase();
+        const nombreB = (b.nombre || b.descripcion || "").toUpperCase();
+        return nombreA.localeCompare(nombreB, "es");
+    });
+    ultimoCombinado = combinado;
     const lista = document.getElementById("lista-lau");
     lista.innerHTML = "";
     let total = 0;
@@ -150,6 +157,60 @@ export async function calcularTotalLauPendienteHasta(uidParam, fechaLimiteISO) {
     }
 
     return total;
+}
+
+async function enviarWhatsapp() {
+    if (ultimoCombinado.length === 0) {
+        mostrarAviso("No hay nada pendiente con Lau en este período.");
+        return;
+    }
+
+    const { mes, anio } = mesYAnioAMostrar();
+    const nombreMes = new Date(anio, mes).toLocaleDateString("es-AR", { month: "long", year: "numeric" });
+    let total = 0;
+
+    let itemsHtml = "";
+    ultimoCombinado.forEach(item => {
+        total += item.montoLau;
+        const cuotaTexto = (item.cuotaActual && item.cuotaTotal)
+            ? ` (${item.cuotaActual}/${item.cuotaTotal})`
+            : "";
+        itemsHtml += `
+      <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #2a2d34; font-size:14px;">
+        <span>${item.nombre || item.descripcion}${cuotaTexto}</span>
+        <span>${formatearMonto(item.montoLau)}</span>
+      </div>`;
+    });
+
+    const totalFinal = periodoPagadoActual ? 0 : total;
+    const mesCapitalizado = nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1);
+
+    document.getElementById("captura-lau-mes").textContent = mesCapitalizado;
+    document.getElementById("captura-lau-items").innerHTML = itemsHtml;
+    document.getElementById("captura-lau-total").textContent = formatearMonto(totalFinal);
+
+    const canvas = await html2canvas(document.getElementById("captura-lau"), { backgroundColor: null, scale: 2 });
+
+    const esMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+
+    canvas.toBlob(async (blob) => {
+        const archivo = new File([blob], "debe-lau.png", { type: "image/png" });
+
+        if (esMobile && navigator.canShare && navigator.canShare({ files: [archivo] })) {
+            await navigator.share({ files: [archivo], title: "Debe Lau" });
+        } else if (navigator.clipboard && window.ClipboardItem) {
+            await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+            mostrarAviso("Imagen copiada. Abrí WhatsApp Web y pegala (Ctrl+V) en el chat de Lau.");
+        } else {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "debe-lau.png";
+            a.click();
+            URL.revokeObjectURL(url);
+            mostrarAviso("Se descargó la imagen, mandásela por WhatsApp manualmente.");
+        }
+    }, "image/png");
 }
 
 function idPeriodoLau() {

@@ -31,3 +31,12 @@ export function parsearMonto(texto) {
     const decimal = texto.slice(ultimoSeparador + 1);
     return parseFloat(entero + "." + decimal) || 0;
 }
+
+export function mostrarAviso(texto) {
+    document.getElementById("modal-aviso-texto").textContent = texto;
+    document.getElementById("modal-aviso").style.display = "flex";
+}
+
+document.getElementById("modal-aviso-cerrar")?.addEventListener("click", () => {
+    document.getElementById("modal-aviso").style.display = "none";
+});
