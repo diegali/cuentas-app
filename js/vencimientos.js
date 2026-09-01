@@ -6,11 +6,6 @@ import {
   collection, doc, getDoc, getDocs, query, where, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const MESES = [
-  "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
-  "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"
-];
-
 const hoy = new Date();
 let mesActual = hoy.getMonth();
 let anioActual = hoy.getFullYear();
@@ -195,6 +190,60 @@ export async function calcularTotalVencimientosMes(uidParam, mes, anio) {
       t += sello;
     }
     total += t;
+  }
+
+  return total;
+}
+
+export async function calcularTotalVencimientosHasta(uidParam, fechaLimiteISO) {
+  let total = 0;
+
+  const qImp = query(
+    collection(db, "users", uidParam, "impuestosServicios"),
+    where("pagado", "==", false),
+    where("vencimiento", "<=", fechaLimiteISO)
+  );
+  const snapImp = await getDocs(qImp);
+  snapImp.forEach(d => total += d.data().monto);
+
+  const fechaLimite = new Date(fechaLimiteISO + "T00:00:00");
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const meses = [];
+  let mesIter = hoy.getMonth(), anioIter = hoy.getFullYear();
+  while (true) {
+    meses.push({ mes: mesIter, anio: anioIter });
+    if (mesIter === fechaLimite.getMonth() && anioIter === fechaLimite.getFullYear()) break;
+    mesIter++;
+    if (mesIter > 11) { mesIter = 0; anioIter++; }
+    if (meses.length > 3) break;
+  }
+
+  for (const { mes, anio } of meses) {
+    for (const tarjeta of TARJETAS) {
+      const idPer = `${tarjeta.replace(/\s+/g, "_")}_${mes}_${anio}`;
+      const snapPeriodo = await getDoc(doc(db, "users", uidParam, "tarjetasPeriodos", idPer));
+      if (!snapPeriodo.exists()) continue;
+      const dataPeriodo = snapPeriodo.data();
+      if (!dataPeriodo.fechaVencimiento || dataPeriodo.pagado) continue;
+      if (dataPeriodo.fechaVencimiento > fechaLimiteISO) continue;
+
+      const qGastos = query(
+        collection(db, "users", uidParam, "tarjetas"),
+        where("tarjeta", "==", tarjeta), where("mes", "==", mes), where("anio", "==", anio)
+      );
+      const snapGastos = await getDocs(qGastos);
+      let t = 0;
+      snapGastos.forEach(d => t += d.data().monto);
+
+      if (tarjeta === "CORDOBESA") {
+        const sello = dataPeriodo.sello ?? t * 0.015;
+        t += sello + (dataPeriodo.comision || 0) + (dataPeriodo.iva || 0);
+      } else if (tarjeta === "MC MERCADO PAGO") {
+        const sello = dataPeriodo.sello ?? t * 0.015;
+        t += sello;
+      }
+      total += t;
+    }
   }
 
   return total;

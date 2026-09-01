@@ -1,19 +1,13 @@
 import { auth, db } from "./firebase-config.js";
 import { formatearMonto } from "./utils.js";
+import { TARJETAS } from "./utils.js";
 import { onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-    collection, doc, updateDoc, getDoc, setDoc, getDocs, query, where, onSnapshot
+    collection, doc, getDoc, setDoc, getDocs, query, where, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const MESES = [
-    "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
-    "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"
-];
-
 const hoy = new Date();
-let mesActual = hoy.getMonth();
-let anioActual = hoy.getFullYear();
 let uid = null;
 let yaIniciado = false;
 let unsubscribeImp = null;
@@ -108,26 +102,52 @@ function renderCombinado() {
         formatearMonto(periodoPagadoActual ? 0 : total);
 }
 
-export async function calcularTotalLauPendiente(uidParam, mes, anio) {
-    const refPeriodo = doc(db, "users", uidParam, "lauPeriodos", `${mes}_${anio}`);
-    const snapPeriodo = await getDoc(refPeriodo);
-    if (snapPeriodo.exists() && snapPeriodo.data().pagado) return 0;
+export async function calcularTotalLauPendienteHasta(uidParam, fechaLimiteISO) {
+    const fechaLimite = new Date(fechaLimiteISO + "T00:00:00");
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const meses = [];
+    let mesIter = hoy.getMonth(), anioIter = hoy.getFullYear();
+    while (true) {
+        meses.push({ mes: mesIter, anio: anioIter });
+        if (mesIter === fechaLimite.getMonth() && anioIter === fechaLimite.getFullYear()) break;
+        mesIter++;
+        if (mesIter > 11) { mesIter = 0; anioIter++; }
+        if (meses.length > 3) break;
+    }
 
     let total = 0;
+    for (const { mes, anio } of meses) {
+        const refPeriodo = doc(db, "users", uidParam, "lauPeriodos", `${mes}_${anio}`);
+        const snapPeriodo = await getDoc(refPeriodo);
+        if (snapPeriodo.exists() && snapPeriodo.data().pagado) continue;
 
-    const qImp = query(
-        collection(db, "users", uidParam, "impuestosServicios"),
-        where("mes", "==", mes), where("anio", "==", anio)
-    );
-    const snapImp = await getDocs(qImp);
-    snapImp.forEach(d => total += d.data().montoLau || 0);
+        const qImp = query(
+            collection(db, "users", uidParam, "impuestosServicios"),
+            where("mes", "==", mes), where("anio", "==", anio)
+        );
+        const snapImp = await getDocs(qImp);
+        snapImp.forEach(d => {
+            const item = d.data();
+            if (item.vencimiento && item.vencimiento <= fechaLimiteISO) {
+                total += item.montoLau || 0;
+            }
+        });
 
-    const qTarj = query(
-        collection(db, "users", uidParam, "tarjetas"),
-        where("mes", "==", mes), where("anio", "==", anio)
-    );
-    const snapTarj = await getDocs(qTarj);
-    snapTarj.forEach(d => total += d.data().montoLau || 0);
+        for (const tarjeta of TARJETAS) {
+            const idPer = `${tarjeta.replace(/\s+/g, "_")}_${mes}_${anio}`;
+            const snapPer = await getDoc(doc(db, "users", uidParam, "tarjetasPeriodos", idPer));
+            if (!snapPer.exists()) continue;
+            const perData = snapPer.data();
+            if (!perData.fechaVencimiento || perData.fechaVencimiento > fechaLimiteISO) continue;
+
+            const qTarj = query(
+                collection(db, "users", uidParam, "tarjetas"),
+                where("tarjeta", "==", tarjeta), where("mes", "==", mes), where("anio", "==", anio)
+            );
+            const snapTarj = await getDocs(qTarj);
+            snapTarj.forEach(d => total += d.data().montoLau || 0);
+        }
+    }
 
     return total;
 }

@@ -62,7 +62,36 @@ Sin selector de mes propio en ninguno de los sub-módulos (se sacó a propósito
 
 **Ahorro a guardar** (`extra.js`): lista simple nombre+monto editable. Firestore: `users/{uid}/ahorros` → `{nombre, monto}`. Total en `totalAhorroActual`.
 
-**Disponible diario** (`extra.js`): input fecha próximo cobro (`users/{uid}/config/diaCobro`). Fórmula: `(totalCuentasActual - totalAhorroActual - totalVencimientos + totalLau) / diasRestantes`. `totalVencimientos` viene de `calcularTotalVencimientosMes()` (vencimientos.js), `totalLau` de `calcularTotalLauPendiente()` (deudalau.js). Se recalcula solo ante cambios en cuentas, ahorro, fecha de cobro, o el checkbox "Pagado" de Debe Lau.
+**Disponible diario** (`extra.js`): input fecha próximo cobro
+(`users/{uid}/config/diaCobro`). Fórmula: `(totalCuentasActual -
+totalAhorroActual - totalVencimientos + totalLau) / diasRestantes`.
+
+**CAMBIO IMPORTANTE (sesión de hoy) — período real vs. mes calendario:**
+el usuario cobra el sueldo un día de la primera semana del mes, no el
+día 1. Antes del cobro, los vencimientos/deudas que "cuentan" para el
+disponible siguen siendo los del período anterior (aunque el calendario
+ya haya rodado al mes nuevo), no los del mes calendario actual. Por eso
+`totalVencimientos` y `totalLau` YA NO se calculan por mes calendario:
+ahora ambos filtran por **fecha real de vencimiento ≤ fecha de "Próximo
+cobro"** cargada por el usuario, recorriendo los meses que hagan falta
+(desde hoy hasta el mes de la fecha de cobro, máx. 3 meses de margen).
+- `totalVencimientos` viene de `calcularTotalVencimientosHasta(uid,
+  fechaCobro)` (vencimientos.js) — REEMPLAZÓ a `calcularTotalVencimientosMes`
+  (la vieja función por mes calendario, ya no se usa desde extra.js pero
+  se dejó en el archivo por si sirve de referencia)
+- `totalLau` viene de `calcularTotalLauPendienteHasta(uid, fechaCobro)`
+  (deudalau.js) — REEMPLAZÓ a `calcularTotalLauPendiente` (misma
+  situación, vieja función por mes calendario ya no usada desde extra.js)
+- Ambas funciones nuevas: arman un array de `{mes, anio}` iterando desde
+  hoy hasta el mes de `fechaCobro` (por si el cobro cae en el mes
+  siguiente), y para cada mes chequean la fecha real (`vencimiento` en
+  impuestosServicios, `fechaVencimiento` en tarjetasPeriodos) contra
+  `fechaCobro`, no contra el mes calendario del documento
+- `calcularTotalLauPendienteHasta` importa `TARJETAS` de utils.js (lo
+  necesita para iterar tarjetasPeriodos, antes esa función no la
+  necesitaba porque solo miraba por mes calendario)
+- Se recalcula ante cambios en cuentas, ahorro, fecha de cobro, o el
+  checkbox "Pagado" de Debe Lau (sin cambios en esta parte)
 
 **Vencimientos del mes** (`vencimientos.js`): combina ítems no pagados de impuestosServicios (monto BRUTO, sin restar Lau) + vencimientos de tarjetas no pagadas (monto bruto + sello/comisión/IVA si aplica), ordenado por fecha. Mismo resaltado rojo/celeste que impserv. Tiempo real completo (ver bug resuelto arriba: ahora también escucha altas en `tarjetas`). Exporta `calcularTotalVencimientosMes(uid, mes, anio)` — versión sin DOM para reusar en Disponible diario, debe usar monto BRUTO (`total += item.monto`), nunca restar montoLau ahí.
 
@@ -112,6 +141,29 @@ Solo el dueño lee/escribe sus propios datos, patrón `users/{userId}/{document=
 - `${variable}` escrito directo en un `.html` es texto literal, no se evalúa — solución: `<span>` vacío + `textContent` desde JS
 - IDs duplicados en el HTML rompen en silencio (el segundo elemento queda sin listener)
 - Ante "no se actualiza sin F5" verificar primero si es falta de listener (onSnapshot) o versión vieja de JS cacheada en el navegador (probar Ctrl+Shift+R antes de asumir bug de lógica)
+- Nuevo índice compuesto creado hoy en Firestore: colección
+  `impuestosServicios`, campos `pagado` + `vencimiento` (para las queries
+  de `calcularTotalVencimientosHasta`/`calcularTotalLauPendienteHasta`
+  que filtran por fecha real, no por mes/año). Si Firebase pide crear un
+  índice nuevo, usar SIEMPRE el link exacto de la consola del navegador
+  (F12), no la pantalla general de "Índices" de Firebase, para no crear
+  un índice con campos equivocados por error
+- Cuando una función se reemplaza por una versión nueva con otro nombre
+  (ej. `calcularTotalVencimientosMes` → `calcularTotalVencimientosHasta`),
+  revisar que el import viejo se haya cambiado en TODOS los archivos que
+  la usan, no solo agregar el nuevo — quedan imports/variables sin uso
+  marcados en gris por el editor, señal para limpiarlos (pasó con
+  `updateDoc`, `mesActual`, `anioActual` en deudalau.js, ya sin uso
+  después de este cambio)
+- **Concepto de fondo (puede volver a aparecer en otros módulos):** el
+  usuario piensa en "período hasta el próximo cobro de sueldo", no en
+  mes calendario. La mayoría de los módulos SÍ usan mes calendario
+  (Tarjetas, Imp. y Servicios, Debe Lau al navegar, Total) porque ahí
+  tiene sentido para cargar/organizar datos. Pero cualquier CÁLCULO que
+  alimente "cuánta plata tengo disponible ahora" debe filtrar por FECHA
+  REAL (`vencimiento`/`fechaVencimiento`) comparada contra la fecha de
+  cobro, no por el campo `mes`/`anio` del documento — si en el futuro se
+  agrega otro cálculo de este tipo, aplicar el mismo criterio de entrada
 
 ## Cambios de la sesión de hoy (después del refactor de utils.js)
 

@@ -1,11 +1,11 @@
 import { auth, db } from "./firebase-config.js";
 import { TARJETAS } from "./utils.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { calcularTotalVencimientosMes } from "./vencimientos.js";
-import { calcularTotalLauPendiente } from "./deudalau.js";
+import { calcularTotalLauPendienteHasta } from "./deudalau.js";
 import {
   collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot, getDoc, setDoc, query, where,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { calcularTotalVencimientosHasta } from "./vencimientos.js";
 
 const ICONOS_TIPO = { banco: "🏦", billetera: "📱", efectivo: "💵" };
 const MESES = [
@@ -259,8 +259,8 @@ async function calcularDisponibleDiario() {
   const dias = Math.max(1, Math.ceil((cobro - hoy) / (1000 * 60 * 60 * 24)));
   spanDias.textContent = dias;
 
-  const totalVencimientos = await calcularTotalVencimientosMes(uid, hoy.getMonth(), hoy.getFullYear());
-  const totalLau = await calcularTotalLauPendiente(uid, hoy.getMonth(), hoy.getFullYear());
+  const totalVencimientos = await calcularTotalVencimientosHasta(uid, fechaCobro);
+  const totalLau = await calcularTotalLauPendienteHasta(uid, fechaCobro);
   const disponible = (totalCuentasActual - totalAhorroActual - totalVencimientos + totalLau) / dias;
   spanDisponible.textContent = formatearMonto(disponible);
 }
