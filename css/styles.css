@@ -7,6 +7,11 @@
   --error: #e05c5c;
 }
 
+html {
+  scrollbar-gutter: stable;
+  overscroll-behavior: none;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -778,4 +783,10 @@ input.fecha-hoy {
   margin: 0 0 16px;
   color: var(--text);
   font-size: 15px;
+}
+
+.barra-superior {
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
