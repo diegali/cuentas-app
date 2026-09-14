@@ -204,7 +204,11 @@ export async function calcularTotalVencimientosHasta(uidParam, fechaLimiteISO) {
     where("vencimiento", "<=", fechaLimiteISO)
   );
   const snapImp = await getDocs(qImp);
-  snapImp.forEach(d => total += d.data().monto);
+  snapImp.forEach(d => {
+    const item = d.data();
+    if (!item.vencimiento) return;
+    total += item.monto;
+  });
 
   const fechaLimite = new Date(fechaLimiteISO + "T00:00:00");
   const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
