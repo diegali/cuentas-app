@@ -15,7 +15,15 @@
   <div class="barra-superior">
     <header class="app-header">
       <h1>💰 Mis Cuentas</h1>
-      <button id="btn-logout">Salir</button>
+      <div class="header-acciones">
+        <div class="campanita-wrap">
+          <button id="btn-campanita" class="btn-campanita" type="button">
+            🔔<span id="campanita-badge" class="campanita-badge" style="display:none;">0</span>
+          </button>
+          <div id="campanita-panel" class="campanita-panel" style="display:none;"></div>
+        </div>
+        <button id="btn-logout">Salir</button>
+      </div>
     </header>
 
     <nav class="tabs">
@@ -212,6 +220,7 @@
   <script type="module" src="js/extra.js"></script>
   <script type="module" src="js/vencimientos.js"></script>
   <script type="module" src="js/metas.js"></script>
+  <script type="module" src="js/campanita.js"></script>
 
 </body>
 

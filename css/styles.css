@@ -790,3 +790,73 @@ input.fecha-hoy {
   top: 0;
   z-index: 10;
 }
+
+.header-acciones {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.campanita-wrap {
+  position: relative;
+}
+
+.btn-campanita {
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  padding: 6px 10px;
+  font-size: 16px;
+  position: relative;
+}
+
+.campanita-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: var(--error);
+  color: #fff;
+  font-size: 11px;
+  font-weight: bold;
+  border-radius: 50%;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.campanita-panel {
+  position: absolute;
+  top: 44px;
+  right: 0;
+  background: var(--card);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  padding: 12px;
+  width: 260px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 999;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+}
+
+.campanita-panel p {
+  margin: 0 0 8px;
+  font-weight: bold;
+  color: var(--accent);
+}
+
+.campanita-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid #2a2d34;
+  font-size: 14px;
+}
+
+.campanita-vacio {
+  color: var(--text-dim);
+  font-size: 13px;
+}
