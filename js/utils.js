@@ -1,4 +1,4 @@
-export const TARJETAS = ["VISA HIPOTECARIO", "VISA FRANCES", "CORDOBESA", "MC MERCADO PAGO"];
+export const TARJETAS = ["VISA HIPOTECARIO", "VISA FRANCES", "CORDOBESA", "MC MERCADO PAGO", "NARANJA X"];
 
 export function formatearMonto(valor) {
     return valor.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
